@@ -404,14 +404,15 @@
       </div>
       <div class="acct" id="dbxAcct">Nicht verbunden.</div>
       <div class="btnrow">
-        <button class="primary" id="btnDbxConnect">Mit Dropbox verbinden</button>
+        <button class="primary" id="btnDbxCode">Verbinden (Code eingeben)</button>
+        <button id="btnDbxConnect">Verbinden (Weiterleitung)</button>
         <button class="ghost" id="btnDbxDisconnect">Trennen</button>
       </div>
       <div class="hint">
-        In der <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener" style="color:var(--accent2)">Dropbox App Console</a> unter <b>Settings → Redirect URIs</b> diese Adresse eintragen:
-        <code id="redirectUri"></code><br>
-        Unter <b>Permissions</b> aktivieren: <code>files.metadata.read</code>, <code>files.metadata.write</code>, <code>files.content.read</code>, <code>files.content.write</code>, <code>sharing.read</code>, <code>sharing.write</code>, <code>account_info.read</code>.
-        Dropbox erlaubt Redirects nur über <code>https://</code> oder <code>http://localhost</code> – nicht über <code>file://</code>.
+        <b>Empfohlen: „Verbinden (Code eingeben)"</b> – funktioniert überall (PC-Datei, Handy, ohne Server): Dropbox öffnet sich, du erlaubst den Zugriff, Dropbox zeigt einen Code, den du hier einträgst.<br>
+        „Weiterleitung" braucht zusätzlich in der <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener" style="color:var(--accent2)">Dropbox App Console</a> unter <b>Settings → Redirect URIs</b> genau diese Adresse: <code id="redirectUri"></code>
+        <span id="redirectNote"></span><br>
+        In jedem Fall unter <b>Permissions</b> aktivieren (dann <b>Submit</b>): <code>files.metadata.read</code>, <code>files.metadata.write</code>, <code>files.content.read</code>, <code>files.content.write</code>, <code>sharing.read</code>, <code>sharing.write</code>, <code>account_info.read</code>.
       </div>
     </div>
 
@@ -499,6 +500,21 @@
       <button type="button" id="bRetry" style="display:none">Erneut hochladen</button>
       <button type="submit" class="primary">Speichern</button>
     </div>
+  </form>
+</dialog>
+
+<!-- ===== Dialog: Dropbox per Code verbinden ===== -->
+<dialog id="dlgDbxCode">
+  <form method="dialog">
+    <div class="dlg-h"><h3>Mit Dropbox verbinden</h3><button type="button" class="icon ghost" data-close>✕</button></div>
+    <div class="dlg-b">
+      <p style="margin:12px 0 6px; font-size:13.5px; line-height:1.5; color:var(--muted)"><b style="color:var(--fg)">Schritt 1:</b> Dropbox-Anmeldung öffnen, Zugriff erlauben. Dropbox zeigt dann einen Zugangscode an.</p>
+      <a id="dbxAuthLink" href="#" target="_blank" rel="noopener" class="primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; color:#fff; background:var(--accent-grad); border-radius:11px; padding:12px 16px; font-weight:600; box-shadow:0 6px 18px rgba(99,102,241,.35)">Bei Dropbox anmelden ↗</a>
+      <p style="margin:16px 0 6px; font-size:13.5px; line-height:1.5; color:var(--muted)"><b style="color:var(--fg)">Schritt 2:</b> Code kopieren und hier einfügen.</p>
+      <div class="row" style="margin-top:0"><label class="f"><span class="lab">Zugangscode</span><input type="text" id="dbxCodeInput" placeholder="z. B. AbC123…" autocomplete="off" autocapitalize="off" spellcheck="false" style="font-family:var(--mono)"></label></div>
+      <div class="hint" id="dbxCodeHint">Der Code ist nur wenige Minuten gültig. Bei „Invalid app key“ bitte den App-Key in den Einstellungen prüfen.</div>
+    </div>
+    <div class="dlg-f"><button type="button" class="ghost" data-close>Abbrechen</button><button type="submit" class="primary" id="dbxCodeOk">Verbinden</button></div>
   </form>
 </dialog>
 
@@ -667,35 +683,59 @@ const Dropbox = {
   get connected(){ return !!(this.auth && this.auth.refreshToken); },
   redirectUri(){ return location.origin + location.pathname; },
   b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); },
-  async connect(){
+  canRedirect(){ return location.protocol === 'https:' || /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(location.origin + '/'); },
+  // PKCE-Anmeldung vorbereiten; mode 'redirect' (Rücksprung zur App) oder 'code' (Nutzer trägt Code ein)
+  async beginAuth(mode){
     const key = DB.settings.dbxAppKey.trim();
     if (!key) throw new Error('Bitte zuerst den Dropbox App-Key eintragen.');
-    if (location.protocol === 'file:') throw new Error('Die Dropbox-Anmeldung funktioniert nicht über file://. Bitte die App über http://localhost oder https:// öffnen.');
+    if (mode === 'redirect' && !this.canRedirect()) throw new Error('Die Weiterleitung funktioniert nur über https:// oder http://localhost. Bitte „Verbinden (Code eingeben)“ nutzen.');
     const verifier = this.b64url(crypto.getRandomValues(new Uint8Array(48)));
     const challenge = this.b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
     const state = this.b64url(crypto.getRandomValues(new Uint8Array(12)));
-    localStorage.setItem(KEY('dbx.pkce'), JSON.stringify({ verifier, state, at:Date.now() }));
-    const p = new URLSearchParams({ client_id:key, response_type:'code', code_challenge:challenge, code_challenge_method:'S256', redirect_uri:this.redirectUri(), token_access_type:'offline', state });
-    location.href = 'https://www.dropbox.com/oauth2/authorize?' + p.toString();
+    localStorage.setItem(KEY('dbx.pkce'), JSON.stringify({ verifier, state, mode, at:Date.now() }));
+    const p = new URLSearchParams({ client_id:key, response_type:'code', code_challenge:challenge, code_challenge_method:'S256', token_access_type:'offline', state });
+    if (mode === 'redirect') p.set('redirect_uri', this.redirectUri());
+    return 'https://www.dropbox.com/oauth2/authorize?' + p.toString();
   },
-  async handleRedirect(){ // ?code=…&state=… nach der Anmeldung
+  async connect(){ location.href = await this.beginAuth('redirect'); },
+  // Code gegen Token tauschen (beide Verfahren)
+  async exchange(code, pk){
+    const body = new URLSearchParams({ code, grant_type:'authorization_code', code_verifier:pk.verifier, client_id:DB.settings.dbxAppKey.trim() });
+    if (pk.mode === 'redirect') body.set('redirect_uri', this.redirectUri());
+    let r;
+    try { r = await fetch('https://api.dropboxapi.com/oauth2/token', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body }); }
+    catch(e){ throw new Error('Keine Verbindung zu Dropbox (Internet? Werbeblocker?).'); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(this.explain(j.error_description || j.error || ('HTTP ' + r.status)));
+    this.auth = { accessToken:j.access_token, refreshToken:j.refresh_token, expiresAt:Date.now() + (j.expires_in - 60) * 1000, account:null };
+    this.saveAuth();
+    await this.loadAccount();
+    toast('Dropbox verbunden' + (this.auth.account ? ' als ' + this.auth.account : '') + '.', 'ok');
+  },
+  explain(msg){
+    if (/invalid_grant|code has expired|expired/i.test(msg)) return 'Der Code ist ungültig oder abgelaufen – bitte Anmeldung erneut öffnen und den neuen Code einfügen.';
+    if (/invalid_client|app key/i.test(msg)) return 'App-Key unbekannt – bitte den „App key“ aus der Dropbox App Console prüfen.';
+    if (/redirect_uri/i.test(msg)) return 'Redirect-URI passt nicht zur Dropbox App Console – am einfachsten „Verbinden (Code eingeben)“ nutzen. (' + msg + ')';
+    return msg;
+  },
+  async connectByCode(code){
+    code = String(code || '').trim();
+    if (!code) throw new Error('Bitte den Zugangscode eintragen.');
+    let pk = null; try { pk = JSON.parse(localStorage.getItem(KEY('dbx.pkce')) || 'null'); } catch(e){}
+    if (!pk || pk.mode !== 'code') throw new Error('Bitte zuerst über „Bei Dropbox anmelden“ einen Code holen.');
+    await this.exchange(code, pk);
+    localStorage.removeItem(KEY('dbx.pkce'));
+  },
+  async handleRedirect(){ // ?code=…&state=… nach der Anmeldung (Weiterleitungsverfahren)
     const q = new URLSearchParams(location.search);
     if (!q.get('code') && !q.get('error')) return false;
     history.replaceState(null, '', location.pathname);
-    if (q.get('error')) { toast('Dropbox-Anmeldung abgebrochen: ' + (q.get('error_description') || q.get('error')), 'err', 8000); return true; }
+    if (q.get('error')) { toast('Dropbox-Anmeldung abgebrochen: ' + this.explain(q.get('error_description') || q.get('error')), 'err', 9000); return true; }
     let pk = null; try { pk = JSON.parse(localStorage.getItem(KEY('dbx.pkce')) || 'null'); } catch(e){}
     localStorage.removeItem(KEY('dbx.pkce'));
     if (!pk || pk.state !== q.get('state')) { toast('Dropbox-Anmeldung: ungültiger Status (bitte erneut verbinden).', 'err', 8000); return true; }
-    try {
-      const body = new URLSearchParams({ code:q.get('code'), grant_type:'authorization_code', code_verifier:pk.verifier, client_id:DB.settings.dbxAppKey.trim(), redirect_uri:this.redirectUri() });
-      const r = await fetch('https://api.dropboxapi.com/oauth2/token', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error_description || j.error || ('HTTP ' + r.status));
-      this.auth = { accessToken:j.access_token, refreshToken:j.refresh_token, expiresAt:Date.now() + (j.expires_in - 60) * 1000, account:null };
-      this.saveAuth();
-      await this.loadAccount();
-      toast('Dropbox verbunden' + (this.auth.account ? ' als ' + this.auth.account : '') + '.', 'ok');
-    } catch(e){ toast('Dropbox-Anmeldung fehlgeschlagen: ' + e.message, 'err', 9000); }
+    try { await this.exchange(q.get('code'), pk); }
+    catch(e){ toast('Dropbox-Anmeldung fehlgeschlagen: ' + e.message, 'err', 9000); }
     return true;
   },
   async loadAccount(){
@@ -1210,6 +1250,21 @@ const UI = {
       finally { $('btnOcrPreload').disabled = false; this.renderSettings(); }
     };
     $('btnDbxConnect').onclick = async () => { try { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); await Dropbox.connect(); } catch(e){ toast(e.message, 'err', 7000); } };
+    $('btnDbxCode').onclick = async () => {
+      try {
+        DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings();
+        $('dbxAuthLink').href = await Dropbox.beginAuth('code');
+        $('dbxCodeInput').value = ''; $('dbxCodeHint').classList.remove('warn');
+        $('dlgDbxCode').showModal();
+      } catch(e){ toast(e.message, 'err', 7000); }
+    };
+    $('dlgDbxCode').querySelector('form').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = $('dbxCodeOk'); btn.disabled = true;
+      try { await Dropbox.connectByCode($('dbxCodeInput').value); $('dlgDbxCode').close(); this.renderSettings(); this.renderStatus(); await Sync.pull(true); Upload.retryAll(); }
+      catch(err){ toast(err.message, 'err', 9000); }
+      finally { btn.disabled = false; }
+    };
     $('btnDbxDisconnect').onclick = () => { Dropbox.disconnect(); this.renderSettings(); this.renderStatus(); toast('Dropbox getrennt.'); };
     $('btnSyncNow').onclick = async () => { if (!Dropbox.connected) { toast('Dropbox ist nicht verbunden.', 'warn'); return; } const c = await Sync.pull(); if (!c) { await Sync.push(); if (!Sync.lastError) toast('Abgleich abgeschlossen – keine Änderungen.', 'ok'); } this.renderSettings(); };
     $('btnBackup').onclick = () => {
@@ -1333,6 +1388,8 @@ const UI = {
     const a = Dropbox.auth;
     $('dbxAcct').innerHTML = Dropbox.connected ? `<span class="statusdot on"></span> Verbunden${a.account ? ' als <b>' + esc(a.account) + '</b>' : ''}${a.email ? ' (' + esc(a.email) + ')' : ''}` : '<span class="statusdot"></span> Nicht verbunden.';
     $('btnDbxDisconnect').disabled = !Dropbox.connected;
+    $('btnDbxConnect').disabled = !Dropbox.canRedirect();
+    $('redirectNote').textContent = Dropbox.canRedirect() ? '' : ' – die App ist gerade über „' + location.protocol + '“ geöffnet, darum ist die Weiterleitung hier nicht möglich.';
     const pend = DB.data.belege.filter(b => b.status !== 'ok').length;
     $('dataInfo').innerHTML = `<div class="k">Wohnungen</div><div class="v">${DB.data.wohnungen.length}</div><div class="k">Belege</div><div class="v">${DB.data.belege.length}${pend ? ' (' + pend + ' nicht hochgeladen)' : ''}</div><div class="k">Letzte Änderung</div><div class="v">${DB.data.updatedAt ? new Date(DB.data.updatedAt).toLocaleString('de-DE') : '–'}</div><div class="k">Dropbox-Datei</div><div class="v">${esc(Dropbox.base() + '/' + APP.dbFile)}</div>`;
   },

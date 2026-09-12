@@ -16,19 +16,32 @@ und Excel-Export fürs Finanzamt.
 Die App braucht nur den Dropbox-Zugang, der unter **Einstellungen** eingetragen wird und nur
 im Browser (localStorage) gespeichert bleibt:
 
-### 1. Dropbox App-Key
+### 1. Dropbox App-Key (einmalig, ca. 3 Minuten)
 1. <https://www.dropbox.com/developers/apps> → **Create app** → *Scoped access* →
-   *App folder* (Belege landen dann in `Apps/<Appname>/…`) oder *Full Dropbox*.
+   *App folder* (Belege landen dann in `Apps/<Appname>/…`) oder *Full Dropbox* → Name vergeben.
 2. Reiter **Permissions** aktivieren: `account_info.read`, `files.metadata.read`,
    `files.metadata.write`, `files.content.read`, `files.content.write`,
-   `sharing.read`, `sharing.write` → **Submit**.
-3. Reiter **Settings** → **Redirect URIs**: genau die Adresse eintragen, die die App unter
-   Einstellungen anzeigt (z. B. `https://<host>/MietAkte/index.html` oder
-   `http://localhost:8777/MietAkte/index.html`). Dropbox akzeptiert nur `https://`
-   oder `http://localhost` – **kein `file://`**.
-4. **App key** kopieren, in der App eintragen → **Mit Dropbox verbinden**.
-   Die Anmeldung läuft per OAuth 2 mit PKCE (kein App-Secret nötig) und bleibt über
-   ein Refresh-Token dauerhaft bestehen.
+   `sharing.read`, `sharing.write` → unten **Submit** drücken (wird leicht vergessen).
+3. Reiter **Settings** → **App key** kopieren und in MietAkte unter Einstellungen eintragen.
+4. **Verbinden (Code eingeben)** drücken → „Bei Dropbox anmelden" → Zugriff erlauben →
+   Dropbox zeigt einen Code → Code in MietAkte einfügen → **Verbinden**.
+   Dieses Verfahren braucht **keine Redirect-URI** und funktioniert auf dem PC (auch bei
+   Doppelklick auf `index.html`) und auf dem Handy.
+
+Alternative „Verbinden (Weiterleitung)": nur wenn die App über `https://` oder
+`http://localhost` läuft **und** in der App Console unter **Settings → Redirect URIs** genau
+die Adresse eingetragen ist, die MietAkte in den Einstellungen anzeigt.
+
+**Typische Fehlerbilder**
+| Meldung | Ursache / Abhilfe |
+|---|---|
+| „Die Weiterleitung funktioniert nur über https://…" | App per Datei geöffnet → Code-Verfahren nutzen |
+| Dropbox-Seite „Invalid redirect_uri" | Adresse in der App Console fehlt/abweichend → Code-Verfahren nutzen oder URI exakt eintragen |
+| „App-Key unbekannt" | Falscher/unvollständiger App key (nicht das App secret) |
+| „Code ist ungültig oder abgelaufen" | Anmeldung erneut öffnen, neuen Code innerhalb weniger Minuten einfügen |
+| Upload-Fehler „missing_scope" | Permissions in der App Console nicht aktiviert oder ohne **Submit** → nachholen, dann Trennen und neu verbinden |
+
+Die Anmeldung bleibt über ein Refresh-Token dauerhaft bestehen (OAuth 2 mit PKCE, kein App-Secret).
 
 ### 2. Texterkennung
 Keine Einrichtung nötig. Unter Einstellungen kann die Sprache (Deutsch bzw. Deutsch + Englisch)
@@ -59,13 +72,23 @@ gewählt und das Erkennungsmodul vorab geladen werden, damit der erste Beleg sch
 - Die Speicherschlüssel sind nach Benutzer-ID gekapselt (`Session.userId`), damit später
   ein Login für weitere Nutzer ergänzt werden kann.
 
-## Hosting fürs Handy
-Kamera-Zugriff und Dropbox-Anmeldung setzen `https://` voraus. Beispiel GitHub Pages:
-Repo mit `MietAkte/index.html` + `MietAkte/Logo/` veröffentlichen, dann
-`https://<user>.github.io/<repo>/MietAkte/index.html` als Redirect-URI eintragen und auf
-dem Handy als Startbildschirm-Verknüpfung ablegen.
+## Auf dem Handy nutzen (Android / iPhone)
+Am besten läuft MietAkte als Webseite über `https://`; dann kann sie auf Android („Zum
+Startbildschirm hinzufügen") und iPhone (Teilen → „Zum Home-Bildschirm") wie eine App abgelegt
+werden. Kamera, Texterkennung und Dropbox funktionieren dort ohne weitere Einrichtung.
 
-Lokaler Test am PC:
+**Option A – GitHub Pages (kostenlos, empfohlen):** Das SYNIUM-Repo ist privat, dort ist
+Pages nicht verfügbar. Stattdessen ein eigenes, öffentliches Repo (z. B. `mietakte`) nur mit
+`index.html` + `Logo/` anlegen, unter *Settings → Pages* den Branch `main` veröffentlichen →
+Adresse `https://<user>.github.io/mietakte/`. Die Dateien enthalten keine Schlüssel;
+alle Zugänge liegen nur im Browser des Handys.
+
+**Option B – Android ohne Hosting:** Ordner `MietAkte` (mit `Logo/`) auf das Handy kopieren
+(z. B. über Dropbox → „Verfügbar offline" oder USB) und `index.html` in Chrome öffnen.
+Kamera-Aufnahme und Dropbox-Anmeldung per Code funktionieren auch so; beim ersten Beleg
+wird das Erkennungsmodul aus dem Internet geladen. Auf dem iPhone ist Option B nicht möglich.
+
+Lokaler Test am PC: Doppelklick auf `index.html` genügt (Dropbox per Code verbinden), oder
 ```bash
 python -m http.server 8777
 ```
