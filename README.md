@@ -48,6 +48,11 @@ Keine Einrichtung nötig. Unter Einstellungen kann die Sprache (Deutsch bzw. Deu
 gewählt und das Erkennungsmodul vorab geladen werden, damit der erste Beleg schneller geht.
 
 ## Bedienung
+Die Oberfläche passt sich der Bildschirmgröße an: auf dem Handy mit unterer Tab-Leiste, am
+Desktop (ab 1100 px Breite) mit linker Navigationsleiste und mehrspaltigen Ansichten; ab 1700 px
+(23-Zoll-Monitore und größer) mit größerer Schrift, drei Spalten in den Einstellungen und
+bis zu 2100 px Inhaltsbreite.
+
 - **Wohnungen**: Mietobjekte anlegen (Name, Adresse, Dropbox-Ordnername). Ordner werden
   unterhalb des Basisordners (Standard `/MietAkte`) angelegt.
 - **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Text wird auf dem Gerät erkannt,
