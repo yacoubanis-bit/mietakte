@@ -77,21 +77,47 @@ bis zu 2100 px Inhaltsbreite.
 - Die Speicherschlüssel sind nach Benutzer-ID gekapselt (`Session.userId`), damit später
   ein Login für weitere Nutzer ergänzt werden kann.
 
-## Auf dem Handy nutzen (Android / iPhone)
-Am besten läuft MietAkte als Webseite über `https://`; dann kann sie auf Android („Zum
-Startbildschirm hinzufügen") und iPhone (Teilen → „Zum Home-Bildschirm") wie eine App abgelegt
-werden. Kamera, Texterkennung und Dropbox funktionieren dort ohne weitere Einrichtung.
+## Von überall nutzen – für mehrere Personen (Android / iPhone / Desktop)
 
-**Option A – GitHub Pages (kostenlos, empfohlen):** Das SYNIUM-Repo ist privat, dort ist
-Pages nicht verfügbar. Stattdessen ein eigenes, öffentliches Repo (z. B. `mietakte`) nur mit
-`index.html` + `Logo/` anlegen, unter *Settings → Pages* den Branch `main` veröffentlichen →
-Adresse `https://<user>.github.io/mietakte/`. Die Dateien enthalten keine Schlüssel;
-alle Zugänge liegen nur im Browser des Handys.
+MietAkte ist eine Webseite. Sobald sie unter einer `https://`-Adresse liegt, kann sie jede
+Person von überall im Browser öffnen und wie eine App auf dem Handy installieren.
+Das eigene, private SYNIUM-Repo kann dafür nicht dienen (GitHub Pages ist im Free-Plan nur für
+**öffentliche** Repos verfügbar). Deshalb bekommt MietAkte ein eigenes öffentliches Repo, das nur
+die App-Dateien enthält (`index.html`, `Logo/`, `icons/`, `manifest.webmanifest`, `README.md`) –
+keine Schlüssel, keine Belege, keine Nutzerdaten.
 
-**Option B – Android ohne Hosting:** Ordner `MietAkte` (mit `Logo/`) auf das Handy kopieren
-(z. B. über Dropbox → „Verfügbar offline" oder USB) und `index.html` in Chrome öffnen.
-Kamera-Aufnahme und Dropbox-Anmeldung per Code funktionieren auch so; beim ersten Beleg
-wird das Erkennungsmodul aus dem Internet geladen. Auf dem iPhone ist Option B nicht möglich.
+### Einrichtung (einmalig, Betreiber)
+1. Auf GitHub ein **öffentliches** Repo `mietakte` anlegen (leer, ohne README).
+2. Inhalt des Ordners `MietAkte/` als Wurzel in dieses Repo pushen (Branch `main`).
+3. Repo → **Settings → Pages** → *Deploy from a branch* → `main` / `/ (root)` → Save.
+   Nach 1–2 Minuten ist die App erreichbar unter `https://<user>.github.io/mietakte/`.
+4. In der **Dropbox App Console** die App auf **Production** stellen, sobald mehr als
+   50 Personen sie nutzen sollen (im Status „Development" sind 50 verbundene Dropbox-Konten erlaubt).
+5. Optional: den Dropbox-App-Key fest in `index.html` eintragen
+   (`const DEFAULT_DBX_APP_KEY = '…'`), damit Nutzer ihn nicht selbst eingeben müssen.
+   Der App-Key ist kein Geheimnis (kein App-Secret nötig, Anmeldung per PKCE).
+
+### Nutzung (jede Person)
+1. Link `https://<user>.github.io/mietakte/` im Handy-Browser öffnen.
+2. Installieren: **Android/Chrome** → Menü ⋮ → „App installieren" bzw. „Zum Startbildschirm";
+   **iPhone/Safari** → Teilen-Symbol → „Zum Home-Bildschirm". Danach startet MietAkte
+   als eigene App mit SYNIUM-Symbol.
+3. Einstellungen → **Verbinden (Code eingeben)** → bei Dropbox anmelden → Code einfügen.
+   Jede Person meldet sich mit **ihrem eigenen Dropbox-Konto** an; Belege und die Belegtabelle
+   landen in ihrer Dropbox. Nichts wird zwischen Personen geteilt.
+4. Wohnungen anlegen, Belege fotografieren – fertig. Beim ersten Beleg lädt das Erkennungsmodul
+   einmalig ca. 15 MB (danach offline nutzbar, nur der Upload braucht Internet).
+
+### Alle Belege in einer gemeinsamen Dropbox?
+Sollen mehrere Personen in **dieselbe** Dropbox schreiben (z. B. Verwalter und Helfer), gibt es
+zwei Wege:
+- **Gemeinsames Konto:** alle melden sich mit demselben Dropbox-Konto an (einfach, aber kein
+  Nachvollziehen, wer was hochgeladen hat).
+- **Freigegebener Ordner:** Der Eigentümer gibt den Ordner `/MietAkte` in Dropbox für die anderen
+  frei; jede Person verbindet ihr eigenes Konto und trägt als Basisordner den Pfad des
+  freigegebenen Ordners ein. Dafür muss die Dropbox-App den Zugriffstyp **Full Dropbox** haben
+  (nicht *App folder*). Die Belegtabelle `mietakte-daten.json` wird dann von allen gemeinsam
+  genutzt und beim Start zusammengeführt.
 
 Lokaler Test am PC: Doppelklick auf `index.html` genügt (Dropbox per Code verbinden), oder
 ```bash

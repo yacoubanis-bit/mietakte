@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MietAkte">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>MietAkte — SYNIUM</title>
 <style>
   :root{
@@ -478,7 +481,7 @@
     <div class="card">
       <h2>Dropbox</h2>
       <div class="row">
-        <label class="f"><span class="lab">Dropbox App-Key</span><input type="text" id="sDbxKey" placeholder="App key aus der Dropbox App Console" autocomplete="off" spellcheck="false"></label>
+        <label class="f"><span class="lab">Dropbox App-Key <span id="sDbxKeyNote" style="font-weight:400; color:var(--faint)"></span></span><input type="text" id="sDbxKey" placeholder="App key aus der Dropbox App Console" autocomplete="off" spellcheck="false"></label>
       </div>
       <div class="row">
         <label class="f"><span class="lab">Basisordner in Dropbox</span><input type="text" id="sDbxBase" placeholder="/MietAkte" autocomplete="off" spellcheck="false"></label>
@@ -529,7 +532,7 @@
 
     <div class="card">
       <h2>Info</h2>
-      <div class="hint" style="margin-top:0">MietAkte v1.1 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Texterkennung läuft lokal auf dem Gerät, keine KI-Cloud. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
+      <div class="hint" style="margin-top:0">MietAkte v1.2 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Texterkennung läuft lokal auf dem Gerät, keine KI-Cloud. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
     </div>
   </section>
 
@@ -622,7 +625,9 @@
    ===================================================================== */
 
 // ---------- Konstanten ----------
-const APP = { name:'MietAkte', version:'1.0', dbFile:'mietakte-daten.json' };
+const APP = { name:'MietAkte', version:'1.2', dbFile:'mietakte-daten.json' };
+// Voreingestellter Dropbox App-Key für alle Nutzer (aus der Dropbox App Console). Leer = jeder Nutzer trägt ihn selbst ein.
+const DEFAULT_DBX_APP_KEY = '';
 const KATEGORIEN = [
   { id:'erhaltung',   name:'Erhaltungsaufwand', cls:'k-erhaltung' },
   { id:'herstellung', name:'Herstellungskosten', cls:'k-herstellung' },
@@ -698,9 +703,10 @@ function confirmDlg(title, text, okLabel = 'Ja, löschen'){
 // ---------- Datenhaltung ----------
 const DB = {
   data:{ version:1, wohnungen:[], belege:[], geloescht:[], updatedAt:'' },
-  settings:{ dbxAppKey:'', dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true },
+  settings:{ dbxAppKey:DEFAULT_DBX_APP_KEY, dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true },
   load(){
     try { const s = JSON.parse(localStorage.getItem(KEY('settings')) || 'null'); if (s) Object.assign(this.settings, s); } catch(e){ console.warn('Einstellungen laden:', e); }
+    if (!this.settings.dbxAppKey && DEFAULT_DBX_APP_KEY) this.settings.dbxAppKey = DEFAULT_DBX_APP_KEY;
     try {
       const d = JSON.parse(localStorage.getItem(KEY('daten')) || 'null');
       if (d && Array.isArray(d.belege)) this.data = Object.assign(this.data, d);
@@ -1463,7 +1469,7 @@ const UI = {
   },
   renderSettings(){
     const s = DB.settings;
-    $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sOcrLang').value = s.ocrLang || 'deu'; $('sAuto').value = s.autoErkennen ? '1' : '0';
+    $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sDbxKeyNote').textContent = DEFAULT_DBX_APP_KEY && s.dbxAppKey === DEFAULT_DBX_APP_KEY ? '(voreingestellt)' : ''; $('sOcrLang').value = s.ocrLang || 'deu'; $('sAuto').value = s.autoErkennen ? '1' : '0';
     if (!OCR.loading) $('ocrState').innerHTML = OCR.ready() ? '<span class="statusdot on"></span> Erkennungsmodul geladen (' + esc(OCR.lang) + ').' : (typeof Tesseract === 'undefined' ? '<span class="statusdot err"></span> Erkennungsmodul nicht verfügbar (Internetverbindung für den ersten Start nötig).' : '<span class="statusdot"></span> Erkennungsmodul wird beim ersten Beleg geladen.');
     $('redirectUri').textContent = Dropbox.redirectUri();
     const a = Dropbox.auth;
