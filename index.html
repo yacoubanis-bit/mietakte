@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070a12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MietAkte">
+<meta name="mobile-web-app-capable" content="yes">
+<title>MietAkte — SYNIUM</title>
+<style>
+  :root{
+    --bg:#070a12; --bg2:#0b1020;
+    --surface:rgba(20,26,42,.72); --surface2:rgba(30,38,60,.6);
+    --field:rgba(10,14,26,.7); --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
+    --fg:#eef2ff; --muted:#8b95b3; --faint:#5b6488;
+    --accent:#6366f1; --accent2:#22d3ee; --accent-grad:linear-gradient(135deg,#6366f1,#22d3ee);
+    --green:#34d399; --red:#f87171; --amber:#fbbf24;
+    --mono:'Cascadia Code',ui-monospace,'SF Mono',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+    --sab:env(safe-area-inset-bottom,0px); --sat:env(safe-area-inset-top,0px);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--fg); font-family:var(--sans); font-size:15px;
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+    background:
+      radial-gradient(1100px 700px at 12% -8%, rgba(99,102,241,.18), transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, rgba(34,211,238,.12), transparent 55%),
+      radial-gradient(800px 800px at 50% 120%, rgba(124,58,237,.10), transparent 60%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+  }
+  ::selection{background:rgba(99,102,241,.45)}
+  *{scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.18) transparent}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14); border-radius:999px}
+
+  /* ===== Header ===== */
+  header{
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px;
+    padding:calc(8px + var(--sat)) 14px 8px; flex:none;
+    background:rgba(11,16,32,.55); backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    border-bottom:1px solid var(--border); z-index:5;
+  }
+  header .logo{height:44px; width:auto; display:block; border-radius:8px; justify-self:start}
+  header .logo-ph{height:44px; padding:0 12px; display:flex; align-items:center; border:1px dashed var(--border2); border-radius:8px; font-size:11px; color:var(--faint); letter-spacing:2px}
+  header h1{
+    margin:0; font-size:22px; font-weight:800; letter-spacing:.6px; text-align:center;
+    background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+    white-space:nowrap;
+  }
+  header .status{justify-self:end; display:flex; align-items:center; gap:7px}
+  .statusdot{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:none}
+  .statusdot.on{background:var(--green); animation:pulse 2s infinite}
+  .statusdot.busy{background:var(--amber); animation:pulse 1s infinite}
+  .statusdot.err{background:var(--red)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.5)}70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  .pill{
+    font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);
+    border-radius:999px;padding:5px 11px;white-space:nowrap; font-weight:600; letter-spacing:.3px;
+  }
+  @media (max-width:480px){ header .pill{display:none} header .logo{height:36px} header h1{font-size:19px} }
+
+  /* ===== Layout ===== */
+  main{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px calc(84px + var(--sab))}
+  .view{display:none; max-width:820px; margin:0 auto; flex-direction:column; gap:14px}
+  .view.active{display:flex; animation:viewIn .22s ease}
+  @keyframes viewIn{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+
+  nav.tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:10;
+    display:flex; justify-content:space-around; padding:6px 6px calc(6px + var(--sab));
+    background:rgba(9,13,26,.82); backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%);
+    border-top:1px solid var(--border);
+  }
+  nav.tabbar button{
+    flex:1; max-width:160px; background:transparent; border:none; color:var(--muted); font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px; font-size:11px; font-weight:600;
+    border-radius:12px; cursor:pointer; transition:.15s;
+  }
+  nav.tabbar button svg{width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
+  nav.tabbar button.active{color:#fff; background:rgba(99,102,241,.18)}
+  nav.tabbar button.active svg{stroke:var(--accent2)}
+  nav.tabbar button.cta{color:#fff}
+  nav.tabbar button.cta svg{width:26px;height:26px}
+
+  /* ===== Cards / forms ===== */
+  .card{
+    border:1px solid var(--border); border-radius:16px; padding:14px 16px 16px;
+    background:var(--surface); box-shadow:var(--shadow); backdrop-filter:blur(10px);
+  }
+  .card h2{
+    margin:0 0 10px; font-size:11px; text-transform:uppercase; letter-spacing:1.4px; font-weight:700;
+    background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .row{display:flex; gap:10px; align-items:flex-end; margin-top:10px; flex-wrap:wrap}
+  .row>*{flex:1; min-width:120px}
+  .row>.narrow{flex:0 0 auto; min-width:0}
+  label.f{font-size:11.5px; color:var(--muted); display:flex; flex-direction:column; gap:6px; font-weight:600}
+  label.f .lab{display:flex; align-items:center; gap:6px}
+  select,input[type=text],input[type=number],input[type=date],input[type=password],input[type=url],textarea{
+    width:100%; background:var(--field); color:var(--fg); border:1px solid var(--border);
+    border-radius:10px; padding:11px 12px; font-size:16px; font-family:inherit; transition:.15s;
+    appearance:none; -webkit-appearance:none; min-height:44px;
+  }
+  textarea{resize:vertical; min-height:60px}
+  select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b95b3' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 11px center; padding-right:30px; cursor:pointer;
+  }
+  select option{background:#0b1020; color:var(--fg)}
+  select:hover,input:hover,textarea:hover{border-color:var(--border2)}
+  select:focus,input:focus,textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,.22)}
+  input::-webkit-calendar-picker-indicator{filter:invert(.7)}
+  input.erkannt{border-color:rgba(34,211,238,.45); box-shadow:inset 0 0 0 1px rgba(34,211,238,.18)}
+  .money{font-family:var(--mono); text-align:right}
+  .suffix{position:relative}
+  .suffix input{padding-right:34px}
+  .suffix::after{content:attr(data-suffix); position:absolute; right:12px; bottom:13px; color:var(--faint); font-size:14px; pointer-events:none}
+
+  button{
+    font-family:inherit; cursor:pointer; border:1px solid var(--border); background:var(--surface2);
+    color:var(--fg); border-radius:11px; padding:11px 16px; font-size:14px; font-weight:600;
+    transition:.15s; letter-spacing:.2px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  }
+  button:hover:not(:disabled){border-color:var(--border2); background:rgba(45,54,82,.8)}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  button.primary{background:var(--accent-grad); border-color:transparent; color:#fff; box-shadow:0 6px 18px rgba(99,102,241,.35)}
+  button.primary:hover:not(:disabled){box-shadow:0 8px 24px rgba(99,102,241,.5); filter:brightness(1.08)}
+  button.danger{background:linear-gradient(135deg,#f43f5e,#f87171); border-color:transparent; color:#fff}
+  button.ghost{background:transparent}
+  button.small{padding:7px 12px; font-size:12.5px; min-height:36px; border-radius:9px}
+  button.icon{padding:0; width:40px; height:40px; min-height:0; border-radius:10px}
+  button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; flex:none}
+  .btnrow{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
+  .btnrow>button{flex:1}
+  .hint{font-size:12px; color:var(--faint); margin-top:8px; line-height:1.5}
+  .hint code,.hint kbd{background:var(--surface2); padding:1px 6px; border-radius:5px; color:var(--accent2); font-family:var(--mono); font-size:11.5px; word-break:break-all}
+  .chip{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; letter-spacing:.3px; padding:3px 9px; border-radius:999px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); white-space:nowrap}
+  .chip.k-erhaltung{color:#67e8f9; border-color:rgba(34,211,238,.35); background:rgba(34,211,238,.1)}
+  .chip.k-herstellung{color:#c4b5fd; border-color:rgba(167,139,250,.4); background:rgba(139,92,246,.12)}
+  .chip.k-klein{color:#fcd34d; border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.1)}
+  .chip.k-sonst{color:#a5b4c8; border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.05)}
+  .chip.ok{color:var(--green)} .chip.warn{color:var(--amber)} .chip.err{color:var(--red)}
+
+  /* ===== Erfassen ===== */
+  .capture{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .capture button{flex-direction:column; padding:18px 10px; min-height:96px; gap:8px; border-style:dashed; border-color:var(--border2); background:rgba(255,255,255,.03)}
+  .capture button svg{width:28px;height:28px; stroke:var(--accent2)}
+  .capture button span{font-size:13px}
+  .preview{position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--border); background:#05070e; display:none; margin-top:12px}
+  .preview.show{display:block}
+  .preview img{width:100%; max-height:46vh; object-fit:contain; display:block}
+  .preview .pdf{display:flex; align-items:center; justify-content:center; gap:10px; height:120px; color:var(--muted); font-size:14px}
+  .preview .tools{position:absolute; top:8px; right:8px; display:flex; gap:6px}
+  .preview .tools button{background:rgba(5,7,14,.75); backdrop-filter:blur(6px)}
+  .scanbar{position:absolute; left:0; right:0; height:3px; top:0; background:linear-gradient(90deg,transparent,var(--accent2),transparent); box-shadow:0 0 14px var(--accent2); animation:scan 1.6s ease-in-out infinite; display:none}
+  .preview.busy .scanbar{display:block}
+  @keyframes scan{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
+  .ai-note{display:none; margin-top:10px; padding:10px 12px; border-radius:10px; font-size:12.5px; line-height:1.5; border:1px solid rgba(34,211,238,.3); background:rgba(34,211,238,.07); color:#bfefff}
+  .ai-note.show{display:block}
+  .ai-note.warn{border-color:rgba(251,191,36,.35); background:rgba(251,191,36,.08); color:#fde68a}
+  .ai-note.err{border-color:rgba(248,113,113,.35); background:rgba(248,113,113,.08); color:#fecaca}
+
+  /* ===== Belege ===== */
+  .filters .row{margin-top:6px}
+  .sums{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px}
+  .sum{border:1px solid var(--border); border-radius:14px; padding:12px 14px; background:var(--surface); box-shadow:var(--shadow)}
+  .sum .n{font-size:12px; color:var(--muted); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .sum .v{font-size:20px; font-weight:800; font-family:var(--mono); margin-top:4px; letter-spacing:-.3px}
+  .sum .s{font-size:11px; color:var(--faint); margin-top:3px; font-family:var(--mono)}
+  .sum.total{border-color:rgba(99,102,241,.45); background:linear-gradient(135deg,rgba(99,102,241,.16),rgba(34,211,238,.08))}
+  .list{display:flex; flex-direction:column; gap:8px}
+  .beleg{
+    display:grid; grid-template-columns:auto 1fr auto; gap:4px 12px; align-items:center;
+    padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:var(--surface); cursor:pointer; transition:.15s;
+  }
+  .beleg:hover{border-color:var(--border2); background:rgba(35,44,70,.75)}
+  .beleg .d{font-family:var(--mono); font-size:12.5px; color:var(--muted); grid-row:span 2; padding-right:10px; border-right:1px solid var(--border); text-align:center; line-height:1.3}
+  .beleg .d b{display:block; font-size:16px; color:var(--fg)}
+  .beleg .h{font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .beleg .m{font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .beleg .b{font-family:var(--mono); font-weight:800; font-size:16px; text-align:right; white-space:nowrap}
+  .beleg .st{font-size:11px; text-align:right; color:var(--faint)}
+  .beleg .st.ok{color:var(--green)} .beleg .st.warn{color:var(--amber)} .beleg .st.err{color:var(--red)}
+  .empty{text-align:center; color:var(--faint); padding:30px 10px; font-size:14px; line-height:1.6}
+  .empty svg{width:44px;height:44px; stroke:var(--faint); fill:none; stroke-width:1.5; margin-bottom:8px}
+
+  /* ===== Wohnungen ===== */
+  .wohnung{display:grid; grid-template-columns:1fr auto; gap:4px 10px; align-items:center; padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:var(--surface)}
+  .wohnung .n{font-weight:700; font-size:15px}
+  .wohnung .a{font-size:12.5px; color:var(--muted)}
+  .wohnung .p{font-size:11.5px; color:var(--faint); font-family:var(--mono); word-break:break-all}
+  .wohnung .acts{grid-row:span 3; display:flex; gap:6px}
+
+  /* ===== Dialog ===== */
+  dialog{
+    border:1px solid var(--border2); border-radius:18px; background:#0d1222; color:var(--fg); padding:0;
+    width:min(94vw,560px); max-height:90dvh; box-shadow:0 24px 80px rgba(0,0,0,.7);
+  }
+  dialog::backdrop{background:rgba(3,5,12,.7); backdrop-filter:blur(3px)}
+  dialog .dlg-h{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border)}
+  dialog .dlg-h h3{margin:0; font-size:16px; font-weight:750}
+  dialog .dlg-b{padding:4px 18px 16px; overflow-y:auto; max-height:calc(90dvh - 130px)}
+  dialog .dlg-f{display:flex; gap:10px; padding:12px 18px calc(12px + var(--sab)); border-top:1px solid var(--border); flex-wrap:wrap}
+  dialog .dlg-f button{flex:1}
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:13px; margin-top:8px}
+  .kv .k{color:var(--muted)}
+  .kv .v{font-family:var(--mono); word-break:break-all}
+  .kv a{color:var(--accent2)}
+
+  /* ===== Toast ===== */
+  #toasts{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + var(--sab)); z-index:200; display:flex; flex-direction:column; gap:8px; width:min(92vw,440px); pointer-events:none}
+  .toast{
+    background:rgba(13,18,34,.95); border:1px solid var(--border2); border-radius:12px; padding:11px 14px; font-size:13.5px;
+    box-shadow:var(--shadow); animation:toastIn .25s ease; pointer-events:auto; display:flex; gap:10px; align-items:flex-start; line-height:1.4;
+  }
+  .toast.ok{border-color:rgba(52,211,153,.45)} .toast.err{border-color:rgba(248,113,113,.5)} .toast.warn{border-color:rgba(251,191,36,.45)}
+  .toast .x{margin-left:auto; color:var(--faint); cursor:pointer; padding:0 2px}
+  @keyframes toastIn{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .keyrow{display:flex; gap:8px; align-items:flex-end}
+  .keyrow label{flex:1}
+  .acct{display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; color:var(--muted)}
+  .acct b{color:var(--fg)}
+
+  /* ===== Intro splash ===== */
+  #splash{
+    position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:22px; cursor:pointer;
+    background:
+      radial-gradient(900px 600px at 50% 32%, rgba(99,102,241,.22), transparent 62%),
+      radial-gradient(760px 520px at 50% 82%, rgba(34,211,238,.16), transparent 60%),
+      #05070e;
+    transition:opacity .6s ease, visibility .6s;
+  }
+  #splash.hide{opacity:0; visibility:hidden}
+  #splash .logo-wrap{
+    position:relative; overflow:hidden; border-radius:16px;
+    opacity:0; transform:scale(.9) translateY(10px);
+    animation:logoIn 1s .15s cubic-bezier(.2,.75,.2,1) forwards;
+  }
+  #splash .logo-wrap img{width:min(74vw,400px); display:block; filter:drop-shadow(0 14px 50px rgba(34,211,238,.4))}
+  #splash .logo-wrap::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.32) 50%,transparent 62%);
+    background-size:250% 100%; background-position:170% 0; animation:shimmer 1.5s 1s ease-out forwards;
+  }
+  #splash .ring{
+    position:absolute; width:560px; height:560px; max-width:120vw; max-height:120vw; border-radius:50%;
+    border:1px solid rgba(99,102,241,.18); animation:ringPulse 3s ease-out infinite; pointer-events:none;
+  }
+  #splash .ring.b{animation-delay:1.5s}
+  #splash .appname{
+    font-size:clamp(34px,9vw,54px); font-weight:800; letter-spacing:2px; line-height:1;
+    background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+    opacity:0; animation:fadeUp .7s .8s forwards; text-shadow:none;
+  }
+  #splash .bar{
+    width:min(62vw,300px); height:3px; border-radius:999px; overflow:hidden;
+    background:rgba(255,255,255,.1); opacity:0; animation:fadeUp .5s 1.05s forwards;
+  }
+  #splash .bar>i{display:block; height:100%; width:0; border-radius:999px; background:var(--accent-grad);
+    box-shadow:0 0 12px rgba(34,211,238,.6); animation:load 1.35s 1.15s cubic-bezier(.6,0,.2,1) forwards}
+  #splash .tag{font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--muted);
+    opacity:0; animation:fadeUp .6s 1.35s forwards}
+  #splash .skip{position:absolute; bottom:calc(24px + var(--sab)); font-size:11px; color:var(--faint); letter-spacing:.5px;
+    opacity:0; animation:fadeUp .6s 2s forwards}
+  @keyframes logoIn{to{opacity:1; transform:scale(1) translateY(0)}}
+  @keyframes shimmer{to{background-position:-70% 0}}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:translateY(0)}}
+  @keyframes load{to{width:100%}}
+  @keyframes ringPulse{0%{transform:scale(.6); opacity:0}40%{opacity:.7}100%{transform:scale(1.25); opacity:0}}
+  @media (prefers-reduced-motion:reduce){ #splash *{animation-duration:.01ms !important; animation-delay:0ms !important} }
+</style>
+</head>
+<body>
+
+<!-- ===== Intro ===== -->
+<div id="splash">
+  <div class="ring"></div><div class="ring b"></div>
+  <div class="logo-wrap"><img src="Logo/SYNIUM_Logo_horizontal_V3_rounded_corners.png" alt="SYNIUM — Rail Safety meets Innovation" onerror="this.parentNode.style.display='none'"></div>
+  <div class="appname">MietAkte</div>
+  <div class="bar"><i></i></div>
+  <div class="tag">Belegverwaltung</div>
+  <div class="skip">Tippen zum Überspringen</div>
+</div>
+
+<header>
+  <img class="logo" id="hdrLogo" src="Logo/SYNIUM_Logo_horizontal_V3_rounded_corners.png" alt="SYNIUM">
+  <h1>MietAkte</h1>
+  <div class="status"><span class="statusdot" id="dot"></span><span class="pill" id="syncPill">Offline</span></div>
+</header>
+
+<main>
+
+  <!-- ===== Belege ===== -->
+  <section class="view" id="view-belege">
+    <div class="card filters">
+      <h2>Filter</h2>
+      <div class="row">
+        <label class="f"><span class="lab">Wohnung</span><select id="fWohnung"><option value="">Alle Wohnungen</option></select></label>
+        <label class="f"><span class="lab">Kategorie</span><select id="fKategorie"><option value="">Alle Kategorien</option></select></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Von</span><input type="date" id="fVon"></label>
+        <label class="f"><span class="lab">Bis</span><input type="date" id="fBis"></label>
+        <label class="f narrow"><span class="lab">Jahr</span><select id="fJahr"><option value="">–</option></select></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Suche</span><input type="text" id="fSuche" placeholder="Händler, Bemerkung …"></label>
+        <button class="small narrow ghost" id="btnFilterReset" style="align-self:flex-end">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <div class="sums" id="sums"></div>
+
+    <div class="btnrow" style="margin-top:0">
+      <button id="btnExportXlsx"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13l6 4M15 13l-6 4"/></svg>Excel-Export</button>
+      <button id="btnRetryAll" style="display:none"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Ausstehende hochladen</button>
+    </div>
+
+    <div class="list" id="belegList"></div>
+  </section>
+
+  <!-- ===== Erfassen ===== -->
+  <section class="view" id="view-erfassen">
+    <div class="card">
+      <h2>Beleg fotografieren oder hochladen</h2>
+      <div class="capture">
+        <button id="btnCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Foto aufnehmen</span></button>
+        <button id="btnFile"><svg viewBox="0 0 24 24"><path d="M4 20h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-8l-2-2H4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1z"/><path d="M12 11v6M9 14h6"/></svg><span>Datei wählen</span></button>
+      </div>
+      <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="filePick" accept="image/*,application/pdf" hidden>
+      <div class="preview" id="preview">
+        <div class="scanbar"></div>
+        <img id="previewImg" alt="Belegvorschau" style="display:none">
+        <div class="pdf" id="previewPdf" style="display:none"></div>
+        <div class="tools">
+          <button class="icon" id="btnReRecognize" title="Erneut erkennen"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
+          <button class="icon" id="btnClearFile" title="Entfernen"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+      </div>
+      <div class="ai-note" id="aiNote"></div>
+    </div>
+
+    <div class="card">
+      <h2>Belegdaten prüfen</h2>
+      <div class="row">
+        <label class="f"><span class="lab">Wohnung *</span><select id="eWohnung"></select></label>
+        <label class="f"><span class="lab">Kategorie *</span><select id="eKategorie"></select></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Datum *</span><input type="date" id="eDatum"></label>
+        <label class="f"><span class="lab">Händler / Lieferant *</span><input type="text" id="eHaendler" placeholder="z. B. Bauhaus" autocomplete="off"></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Bruttobetrag *</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="eBrutto" placeholder="0,00"></span></label>
+        <label class="f"><span class="lab">davon MwSt</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="eMwst" placeholder="0,00"></span></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Bemerkung</span><textarea id="eBemerkung" rows="2" placeholder="z. B. Badsanierung, Rechnung Nr. …"></textarea></label>
+      </div>
+      <div class="hint" id="eHint">Erkannte Werte sind blau markiert – bitte vor dem Speichern prüfen.</div>
+      <div class="btnrow">
+        <button class="primary" id="btnSave"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Speichern &amp; hochladen</button>
+        <button class="ghost narrow" id="btnResetForm">Leeren</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Wohnungen ===== -->
+  <section class="view" id="view-wohnungen">
+    <div class="card">
+      <h2>Mietobjekte</h2>
+      <div class="list" id="wohnungList"></div>
+      <div class="btnrow"><button class="primary" id="btnNewWohnung"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Wohnung anlegen</button></div>
+      <div class="hint">Pro Wohnung wird ein Dropbox-Ordner unter dem Basisordner (siehe Einstellungen) angelegt. Belegbilder landen dort als <code>JJJJ-MM-TT_Händler_Betrag.jpg</code>.</div>
+    </div>
+  </section>
+
+  <!-- ===== Einstellungen ===== -->
+  <section class="view" id="view-einstellungen">
+    <div class="card">
+      <h2>Dropbox</h2>
+      <div class="row">
+        <label class="f"><span class="lab">Dropbox App-Key</span><input type="text" id="sDbxKey" placeholder="App key aus der Dropbox App Console" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Basisordner in Dropbox</span><input type="text" id="sDbxBase" placeholder="/MietAkte" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <div class="acct" id="dbxAcct">Nicht verbunden.</div>
+      <div class="btnrow">
+        <button class="primary" id="btnDbxConnect">Mit Dropbox verbinden</button>
+        <button class="ghost" id="btnDbxDisconnect">Trennen</button>
+      </div>
+      <div class="hint">
+        In der <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noopener" style="color:var(--accent2)">Dropbox App Console</a> unter <b>Settings → Redirect URIs</b> diese Adresse eintragen:
+        <code id="redirectUri"></code><br>
+        Unter <b>Permissions</b> aktivieren: <code>files.metadata.read</code>, <code>files.metadata.write</code>, <code>files.content.read</code>, <code>files.content.write</code>, <code>sharing.read</code>, <code>sharing.write</code>, <code>account_info.read</code>.
+        Dropbox erlaubt Redirects nur über <code>https://</code> oder <code>http://localhost</code> – nicht über <code>file://</code>.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Betragserkennung (Anthropic API)</h2>
+      <div class="keyrow">
+        <label class="f"><span class="lab">API-Key</span><input type="password" id="sAntKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false"></label>
+        <button class="icon" id="btnToggleKey" title="Anzeigen"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Modell</span>
+          <select id="sModel">
+            <option value="claude-opus-5">Claude Opus 5 (Standard)</option>
+            <option value="claude-sonnet-5">Claude Sonnet 5 (günstiger)</option>
+            <option value="claude-haiku-4-5">Claude Haiku 4.5 (am günstigsten)</option>
+            <option value="claude-fable-5-1">Claude Fable 5.1 (höchste Qualität)</option>
+          </select>
+        </label>
+        <label class="f narrow" style="min-width:150px"><span class="lab">Automatisch erkennen</span>
+          <select id="sAuto"><option value="1">Ja, nach Foto</option><option value="0">Nein, manuell</option></select>
+        </label>
+      </div>
+      <div class="btnrow"><button id="btnAntTest">Verbindung testen</button></div>
+      <div class="hint">Der Schlüssel wird nur lokal im Browser gespeichert (localStorage) und direkt an <code>api.anthropic.com</code> gesendet. Für einen späteren Mehrbenutzerbetrieb sollte der Aufruf über einen kleinen Server laufen, damit der Schlüssel nicht im Browser liegt.</div>
+    </div>
+
+    <div class="card">
+      <h2>Daten</h2>
+      <div class="kv" id="dataInfo"></div>
+      <div class="btnrow">
+        <button id="btnSyncNow">Jetzt mit Dropbox abgleichen</button>
+        <button id="btnBackup">Sicherung (JSON)</button>
+        <button id="btnRestore">Wiederherstellen</button>
+      </div>
+      <input type="file" id="fileRestore" accept="application/json" hidden>
+      <div class="hint">Die Belegtabelle liegt lokal im Browser und – bei verbundener Dropbox – zusätzlich als <code>mietakte-daten.json</code> im Basisordner. So sind die Daten auf mehreren Geräten verfügbar.</div>
+    </div>
+
+    <div class="card">
+      <h2>Info</h2>
+      <div class="hint" style="margin-top:0">MietAkte v1.0 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button data-view="belege" class="active"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Belege</button>
+  <button data-view="erfassen" class="cta"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Erfassen</button>
+  <button data-view="wohnungen"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Wohnungen</button>
+  <button data-view="einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Einstellungen</button>
+</nav>
+
+<!-- ===== Dialog: Wohnung ===== -->
+<dialog id="dlgWohnung">
+  <form method="dialog">
+    <div class="dlg-h"><h3 id="dlgWohnungTitle">Wohnung anlegen</h3><button type="button" class="icon ghost" data-close>✕</button></div>
+    <div class="dlg-b">
+      <div class="row"><label class="f"><span class="lab">Bezeichnung *</span><input type="text" id="wName" placeholder="z. B. Wohnung Hauptstraße 12, 2. OG" required></label></div>
+      <div class="row"><label class="f"><span class="lab">Adresse</span><input type="text" id="wAdresse" placeholder="Straße, PLZ Ort"></label></div>
+      <div class="row"><label class="f"><span class="lab">Dropbox-Ordner (Name)</span><input type="text" id="wOrdner" placeholder="wird aus der Bezeichnung erzeugt"></label></div>
+      <div class="hint">Der Ordner wird unterhalb des Basisordners angelegt. Vorhandene Ordner werden wiederverwendet.</div>
+    </div>
+    <div class="dlg-f"><button type="button" class="ghost" data-close>Abbrechen</button><button type="submit" class="primary" id="wSave">Speichern</button></div>
+  </form>
+</dialog>
+
+<!-- ===== Dialog: Beleg bearbeiten ===== -->
+<dialog id="dlgBeleg">
+  <form method="dialog">
+    <div class="dlg-h"><h3>Beleg bearbeiten</h3><button type="button" class="icon ghost" data-close>✕</button></div>
+    <div class="dlg-b">
+      <div class="row">
+        <label class="f"><span class="lab">Wohnung</span><select id="bWohnung"></select></label>
+        <label class="f"><span class="lab">Kategorie</span><select id="bKategorie"></select></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Datum</span><input type="date" id="bDatum"></label>
+        <label class="f"><span class="lab">Händler</span><input type="text" id="bHaendler"></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Brutto</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="bBrutto"></span></label>
+        <label class="f"><span class="lab">MwSt</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="bMwst"></span></label>
+      </div>
+      <div class="row"><label class="f"><span class="lab">Bemerkung</span><textarea id="bBemerkung" rows="2"></textarea></label></div>
+      <div class="kv" id="bInfo"></div>
+    </div>
+    <div class="dlg-f">
+      <button type="button" class="danger" id="bDelete">Löschen</button>
+      <button type="button" id="bRetry" style="display:none">Erneut hochladen</button>
+      <button type="submit" class="primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===== Dialog: Bestätigung ===== -->
+<dialog id="dlgConfirm">
+  <form method="dialog">
+    <div class="dlg-h"><h3 id="cTitle">Bestätigen</h3></div>
+    <div class="dlg-b"><p id="cText" style="margin:12px 0; line-height:1.5; color:var(--muted)"></p></div>
+    <div class="dlg-f"><button type="button" class="ghost" value="cancel" data-close>Abbrechen</button><button type="submit" class="danger" id="cOk" value="ok">Ja</button></div>
+  </form>
+</dialog>
+
+<div id="toasts"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   MietAkte – Belegverwaltung (SYNIUM)
+   Einzeldatei-Web-App. Persistenz: localStorage (+ Dropbox-Spiegel).
+   Die Speicherung ist nach Benutzer-ID gekapselt (Session.userId), damit
+   später ein Login mit mehreren Nutzern ergänzt werden kann.
+   ===================================================================== */
+
+// ---------- Konstanten ----------
+const APP = { name:'MietAkte', version:'1.0', dbFile:'mietakte-daten.json' };
+const KATEGORIEN = [
+  { id:'erhaltung',   name:'Erhaltungsaufwand', cls:'k-erhaltung' },
+  { id:'herstellung', name:'Herstellungskosten', cls:'k-herstellung' },
+  { id:'klein',       name:'Kleinmaterial',      cls:'k-klein' },
+  { id:'sonstiges',   name:'Sonstiges',          cls:'k-sonst' },
+];
+const Session = { userId:'local' };                       // Platz für späteres Login
+const KEY = (k) => `mietakte.${Session.userId}.${k}`;    // benutzerbezogene Speicherschlüssel
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+const nowIso = () => new Date().toISOString();
+
+// ---------- Formatierung (deutsch) ----------
+const fmtEUR = new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR' });
+const fmtNum = new Intl.NumberFormat('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 });
+function euro(n){ return (n == null || isNaN(n)) ? '–' : fmtEUR.format(n); }
+function num2(n){ return (n == null || isNaN(n)) ? '' : fmtNum.format(n); }
+function parseBetrag(s){
+  if (s == null) return null;
+  let t = String(s).trim().replace(/[€\s]/g, '');
+  if (!t) return null;
+  if (/,\d{1,2}$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');          // 1.234,56 → 1234.56
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');           // 1.000 → 1000 (deutsche Tausender)
+  else if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(t)) t = t.replace(/,/g, ''); // 1,234.50 → 1234.50 (US-Schreibweise)
+  else t = t.replace(',', '.');                                                  // 12,5 → 12.5
+  const v = Number(t);
+  return isNaN(v) ? null : Math.round(v * 100) / 100;
+}
+function fmtDatum(iso){ // 2026-03-04 → 04.03.2026
+  if (!iso) return '–';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
+}
+function parseDatum(s){ // akzeptiert TT.MM.JJJJ, JJJJ-MM-TT, TT.MM.JJ
+  if (!s) return '';
+  s = String(s).trim();
+  let m;
+  if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  if ((m = /^(\d{1,2})\.(\d{1,2})\.(\d{2,4})/.exec(s))) { let y = m[3]; if (y.length === 2) y = '20' + y; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s))) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return '';
+}
+function slug(s){
+  return String(s || '').trim()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue').replace(/ß/g,'ss')
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^A-Za-z0-9._ -]/g,'').trim().replace(/\s+/g,'_').replace(/_+/g,'_').slice(0, 60) || 'Ordner';
+}
+function kat(id){ return KATEGORIEN.find(k => k.id === id) || KATEGORIEN[3]; }
+
+// ---------- Toasts ----------
+function toast(msg, type = '', ms = 4200){
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${esc(msg)}</span><span class="x">✕</span>`;
+  el.querySelector('.x').onclick = () => el.remove();
+  $('toasts').appendChild(el);
+  if (ms > 0) setTimeout(() => el.remove(), ms);
+  return el;
+}
+function confirmDlg(title, text, okLabel = 'Ja, löschen'){
+  return new Promise(res => {
+    const d = $('dlgConfirm');
+    $('cTitle').textContent = title; $('cText').textContent = text; $('cOk').textContent = okLabel;
+    const done = () => { d.removeEventListener('close', done); res(d.returnValue === 'ok'); };
+    d.addEventListener('close', done);
+    d.returnValue = ''; d.showModal();
+  });
+}
+
+// ---------- Datenhaltung ----------
+const DB = {
+  data:{ version:1, wohnungen:[], belege:[], geloescht:[], updatedAt:'' },
+  settings:{ dbxAppKey:'', dbxBase:'/MietAkte', anthropicKey:'', model:'claude-opus-5', autoErkennen:true },
+  load(){
+    try { const s = JSON.parse(localStorage.getItem(KEY('settings')) || 'null'); if (s) Object.assign(this.settings, s); } catch(e){ console.warn('Einstellungen laden:', e); }
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY('daten')) || 'null');
+      if (d && Array.isArray(d.belege)) this.data = Object.assign(this.data, d);
+    } catch(e){ console.warn('Daten laden:', e); toast('Lokale Daten konnten nicht gelesen werden.', 'err'); }
+    this.data.geloescht = this.data.geloescht || [];
+  },
+  saveSettings(){ localStorage.setItem(KEY('settings'), JSON.stringify(this.settings)); },
+  save(touch = true){
+    if (touch) this.data.updatedAt = nowIso();
+    localStorage.setItem(KEY('daten'), JSON.stringify(this.data));
+    Sync.schedule();
+  },
+  wohnung(id){ return this.data.wohnungen.find(w => w.id === id); },
+  beleg(id){ return this.data.belege.find(b => b.id === id); },
+  merge(remote){ // Zusammenführen: pro Datensatz gewinnt die jüngere Änderung; Löschungen per Tombstone
+    if (!remote || !Array.isArray(remote.belege)) return false;
+    const L = this.data, R = remote;
+    const del = new Map();
+    for (const t of [...(L.geloescht || []), ...(R.geloescht || [])]) if (!del.has(t.id) || del.get(t.id) < t.at) del.set(t.id, t.at);
+    const mergeList = (a, b) => {
+      const m = new Map();
+      for (const x of [...a, ...b]) {
+        const cur = m.get(x.id);
+        if (!cur || (x.geaendert || '') > (cur.geaendert || '')) m.set(x.id, x);
+      }
+      return [...m.values()].filter(x => !del.has(x.id) || (x.geaendert || '') > del.get(x.id));
+    };
+    const before = JSON.stringify(L);
+    L.wohnungen = mergeList(L.wohnungen, R.wohnungen || []);
+    L.belege = mergeList(L.belege, R.belege || []);
+    L.geloescht = [...del].map(([id, at]) => ({ id, at })).slice(-500);
+    const changed = JSON.stringify(L) !== before;
+    L.updatedAt = (R.updatedAt || '') > (L.updatedAt || '') ? R.updatedAt : L.updatedAt;
+    if (changed) localStorage.setItem(KEY('daten'), JSON.stringify(L));
+    return changed;
+  }
+};
+
+// ---------- IndexedDB für ausstehende Uploads (Bild bleibt erhalten, bis der Upload gelingt) ----------
+const Pending = {
+  db:null,
+  open(){
+    if (this.db) return Promise.resolve(this.db);
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('mietakte', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('pending', { keyPath:'id' });
+      r.onsuccess = () => { this.db = r.result; res(this.db); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  async put(rec){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('pending', 'readwrite'); t.objectStore('pending').put(rec); t.oncomplete = res; t.onerror = () => rej(t.error); }); },
+  async get(id){ const db = await this.open(); return new Promise((res, rej) => { const r = db.transaction('pending').objectStore('pending').get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); }); },
+  async del(id){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('pending', 'readwrite'); t.objectStore('pending').delete(id); t.oncomplete = res; t.onerror = () => rej(t.error); }); },
+};
+
+// ---------- Dropbox ----------
+const Dropbox = {
+  auth:null,   // { accessToken, refreshToken, expiresAt, account }
+  load(){ try { this.auth = JSON.parse(localStorage.getItem(KEY('dbx.auth')) || 'null'); } catch(e){ this.auth = null; } },
+  saveAuth(){ if (this.auth) localStorage.setItem(KEY('dbx.auth'), JSON.stringify(this.auth)); else localStorage.removeItem(KEY('dbx.auth')); },
+  get connected(){ return !!(this.auth && this.auth.refreshToken); },
+  redirectUri(){ return location.origin + location.pathname; },
+  b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); },
+  async connect(){
+    const key = DB.settings.dbxAppKey.trim();
+    if (!key) throw new Error('Bitte zuerst den Dropbox App-Key eintragen.');
+    if (location.protocol === 'file:') throw new Error('Die Dropbox-Anmeldung funktioniert nicht über file://. Bitte die App über http://localhost oder https:// öffnen.');
+    const verifier = this.b64url(crypto.getRandomValues(new Uint8Array(48)));
+    const challenge = this.b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+    const state = this.b64url(crypto.getRandomValues(new Uint8Array(12)));
+    localStorage.setItem(KEY('dbx.pkce'), JSON.stringify({ verifier, state, at:Date.now() }));
+    const p = new URLSearchParams({ client_id:key, response_type:'code', code_challenge:challenge, code_challenge_method:'S256', redirect_uri:this.redirectUri(), token_access_type:'offline', state });
+    location.href = 'https://www.dropbox.com/oauth2/authorize?' + p.toString();
+  },
+  async handleRedirect(){ // ?code=…&state=… nach der Anmeldung
+    const q = new URLSearchParams(location.search);
+    if (!q.get('code') && !q.get('error')) return false;
+    history.replaceState(null, '', location.pathname);
+    if (q.get('error')) { toast('Dropbox-Anmeldung abgebrochen: ' + (q.get('error_description') || q.get('error')), 'err', 8000); return true; }
+    let pk = null; try { pk = JSON.parse(localStorage.getItem(KEY('dbx.pkce')) || 'null'); } catch(e){}
+    localStorage.removeItem(KEY('dbx.pkce'));
+    if (!pk || pk.state !== q.get('state')) { toast('Dropbox-Anmeldung: ungültiger Status (bitte erneut verbinden).', 'err', 8000); return true; }
+    try {
+      const body = new URLSearchParams({ code:q.get('code'), grant_type:'authorization_code', code_verifier:pk.verifier, client_id:DB.settings.dbxAppKey.trim(), redirect_uri:this.redirectUri() });
+      const r = await fetch('https://api.dropboxapi.com/oauth2/token', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error_description || j.error || ('HTTP ' + r.status));
+      this.auth = { accessToken:j.access_token, refreshToken:j.refresh_token, expiresAt:Date.now() + (j.expires_in - 60) * 1000, account:null };
+      this.saveAuth();
+      await this.loadAccount();
+      toast('Dropbox verbunden' + (this.auth.account ? ' als ' + this.auth.account : '') + '.', 'ok');
+    } catch(e){ toast('Dropbox-Anmeldung fehlgeschlagen: ' + e.message, 'err', 9000); }
+    return true;
+  },
+  async loadAccount(){
+    try { const a = await this.rpc('users/get_current_account', null); this.auth.account = (a.name && a.name.display_name) || a.email || ''; this.auth.email = a.email || ''; this.saveAuth(); } catch(e){ console.warn(e); }
+  },
+  disconnect(){ this.auth = null; this.saveAuth(); },
+  async token(){
+    if (!this.connected) throw new Error('Dropbox ist nicht verbunden.');
+    if (Date.now() < (this.auth.expiresAt || 0) && this.auth.accessToken) return this.auth.accessToken;
+    const body = new URLSearchParams({ grant_type:'refresh_token', refresh_token:this.auth.refreshToken, client_id:DB.settings.dbxAppKey.trim() });
+    const r = await fetch('https://api.dropboxapi.com/oauth2/token', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 400 || r.status === 401) { this.disconnect(); UI.renderSettings(); }
+      throw new Error('Dropbox-Anmeldung abgelaufen – bitte neu verbinden. (' + (j.error_description || j.error || r.status) + ')');
+    }
+    this.auth.accessToken = j.access_token; this.auth.expiresAt = Date.now() + (j.expires_in - 60) * 1000; this.saveAuth();
+    return this.auth.accessToken;
+  },
+  headerJson(v){ return JSON.stringify(v).replace(/[-￿]/g, c => '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4)); },
+  async errorText(r){
+    const t = await r.text().catch(() => '');
+    try { const j = JSON.parse(t); return j.error_summary || j.error_description || j.error || t; } catch(e){ return t || ('HTTP ' + r.status); }
+  },
+  async rpc(ep, arg){
+    const tok = await this.token();
+    const r = await fetch('https://api.dropboxapi.com/2/' + ep, { method:'POST', headers:{ Authorization:'Bearer ' + tok, 'Content-Type':'application/json' }, body: arg === null ? null : JSON.stringify(arg) });
+    if (r.status === 401) { this.auth.expiresAt = 0; throw new Error('Dropbox: nicht autorisiert (401).'); }
+    if (!r.ok) { const e = new Error('Dropbox ' + ep + ': ' + await this.errorText(r)); e.status = r.status; throw e; }
+    return r.json();
+  },
+  async upload(path, blob, mode = 'add'){
+    const tok = await this.token();
+    const r = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      method:'POST',
+      headers:{ Authorization:'Bearer ' + tok, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': this.headerJson({ path, mode, autorename: mode === 'add', mute:true }) },
+      body: blob,
+    });
+    if (!r.ok) throw new Error('Dropbox-Upload: ' + await this.errorText(r));
+    return r.json();
+  },
+  async download(path){
+    const tok = await this.token();
+    const r = await fetch('https://content.dropboxapi.com/2/files/download', { method:'POST', headers:{ Authorization:'Bearer ' + tok, 'Dropbox-API-Arg': this.headerJson({ path }) } });
+    if (r.status === 409) return null; // nicht vorhanden
+    if (!r.ok) throw new Error('Dropbox-Download: ' + await this.errorText(r));
+    return r.text();
+  },
+  async ensureFolder(path){
+    try { await this.rpc('files/create_folder_v2', { path, autorename:false }); }
+    catch(e){ if (!/conflict/.test(e.message)) throw e; }
+  },
+  async sharedLink(path){
+    try { const j = await this.rpc('sharing/create_shared_link_with_settings', { path }); return j.url; }
+    catch(e){
+      if (/shared_link_already_exists/.test(e.message)) {
+        const j = await this.rpc('sharing/list_shared_links', { path, direct_only:true });
+        if (j.links && j.links[0]) return j.links[0].url;
+      }
+      console.warn('Freigabelink:', e.message);
+      return '';
+    }
+  },
+  base(){ let b = (DB.settings.dbxBase || '/MietAkte').trim(); if (!b.startsWith('/')) b = '/' + b; return b.replace(/\/+$/, '') || ''; },
+  wohnungPath(w){ return this.base() + '/' + (w.ordner || slug(w.name)); },
+};
+
+// ---------- Abgleich der Datentabelle mit Dropbox ----------
+const Sync = {
+  timer:null, busy:false, lastError:'',
+  schedule(){ if (!Dropbox.connected) return; clearTimeout(this.timer); this.timer = setTimeout(() => this.push().catch(e => console.warn(e)), 2500); },
+  async push(){
+    if (!Dropbox.connected) return;
+    this.busy = true; UI.renderStatus();
+    try {
+      await Dropbox.ensureFolder(Dropbox.base());
+      const blob = new Blob([JSON.stringify(DB.data, null, 1)], { type:'application/json' });
+      await Dropbox.upload(Dropbox.base() + '/' + APP.dbFile, blob, 'overwrite');
+      this.lastError = '';
+    } catch(e){ this.lastError = e.message; toast('Abgleich mit Dropbox fehlgeschlagen: ' + e.message, 'warn', 6000); }
+    finally { this.busy = false; UI.renderStatus(); }
+  },
+  async pull(silent = false){
+    if (!Dropbox.connected) return false;
+    this.busy = true; UI.renderStatus();
+    try {
+      const txt = await Dropbox.download(Dropbox.base() + '/' + APP.dbFile);
+      this.lastError = '';
+      if (!txt) { await this.push(); return false; }
+      const remote = JSON.parse(txt);
+      const changed = DB.merge(remote);
+      if (changed) { UI.renderAll(); if (!silent) toast('Daten aus Dropbox übernommen.', 'ok'); }
+      return changed;
+    } catch(e){ this.lastError = e.message; if (!silent) toast('Abgleich: ' + e.message, 'warn', 6000); return false; }
+    finally { this.busy = false; UI.renderStatus(); }
+  },
+};
+
+// ---------- Bildaufbereitung ----------
+async function prepareFile(file){
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (isPdf) {
+    if (file.size > 30 * 1024 * 1024) throw new Error('PDF ist größer als 30 MB.');
+    return { blob:file, mime:'application/pdf', ext:'pdf', previewUrl:'', isPdf:true, name:file.name };
+  }
+  if (!/^image\//.test(file.type)) throw new Error('Bitte ein Bild (JPG/PNG/HEIC) oder eine PDF-Datei auswählen.');
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  catch(e){
+    // Fallback über <img> (z. B. HEIC ohne Unterstützung → Fehler)
+    bmp = await new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('Bildformat wird von diesem Browser nicht unterstützt (evtl. HEIC). Bitte als JPG aufnehmen.')); img.src = URL.createObjectURL(file); });
+  }
+  const MAX = 1800;
+  const scale = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+  const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+  if (bmp.close) bmp.close();
+  const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.86));
+  if (!blob) throw new Error('Bild konnte nicht verarbeitet werden.');
+  return { blob, mime:'image/jpeg', ext:'jpg', previewUrl:URL.createObjectURL(blob), isPdf:false, name:file.name };
+}
+function blobToBase64(blob){
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); });
+}
+
+// ---------- Belegerkennung (Anthropic Messages API, strukturierte JSON-Ausgabe) ----------
+const Vision = {
+  schema:{
+    type:'object', additionalProperties:false,
+    properties:{
+      haendler:  { type:'string', description:'Name des Händlers/Lieferanten/Handwerkers (kurz, ohne Rechtsform-Zusätze wie GmbH wenn möglich)' },
+      datum:     { type:'string', description:'Rechnungs-/Belegdatum als JJJJ-MM-TT, leer wenn nicht erkennbar' },
+      brutto:    { anyOf:[{ type:'number' }, { type:'null' }], description:'Gesamtbetrag brutto in Euro (zu zahlender Endbetrag)' },
+      mwst:      { anyOf:[{ type:'number' }, { type:'null' }], description:'Ausgewiesener Umsatzsteuerbetrag in Euro (Summe aller MwSt-Beträge), null wenn nicht ausgewiesen' },
+      mwst_satz: { anyOf:[{ type:'number' }, { type:'null' }], description:'Vorherrschender Steuersatz in Prozent (z. B. 19 oder 7), null wenn unbekannt' },
+      waehrung:  { type:'string', description:'Währungscode, z. B. EUR' },
+      belegnummer:{ type:'string', description:'Rechnungs-/Belegnummer, leer wenn keine' },
+      kategorie_vorschlag:{ type:'string', enum:['erhaltung','herstellung','klein','sonstiges'], description:'Vorschlag: erhaltung = Reparatur/Renovierung/Instandhaltung; herstellung = Neuanschaffung/Erweiterung mit wesentlicher Verbesserung; klein = Kleinmaterial unter ca. 250 € netto; sonstiges' },
+      zuversicht:{ type:'string', enum:['hoch','mittel','niedrig'], description:'Wie sicher sind Betrag und Datum erkannt' },
+      hinweis:   { type:'string', description:'Kurzer Hinweis auf Unsicherheiten oder Besonderheiten (deutsch), leer wenn keine' },
+    },
+    required:['haendler','datum','brutto','mwst','mwst_satz','waehrung','belegnummer','kategorie_vorschlag','zuversicht','hinweis'],
+  },
+  system:`Du bist ein Assistent zur Belegerfassung für die Vermietung von Wohnungen in Deutschland (Werbungskosten aus Vermietung und Verpachtung).
+Du erhältst das Foto oder die PDF eines Belegs (Kassenbon, Rechnung, Quittung). Lies die Werte sorgfältig ab:
+- brutto: der zu zahlende Gesamtbetrag (Endsumme inkl. MwSt). Deutsche Schreibweise 1.234,56 bedeutet 1234.56.
+- mwst: der ausgewiesene Umsatzsteuerbetrag. Bei Kassenbons oft als "MwSt", "USt", "inkl. 19 %" ausgewiesen. Wenn nur Netto und Satz angegeben sind, berechne die MwSt. Bei Kleinunternehmer-Rechnungen ohne USt-Ausweis: null.
+- datum: das Rechnungs- bzw. Belegdatum, nicht das Fälligkeits- oder Lieferdatum.
+- haendler: der Name des Verkäufers/Handwerksbetriebs.
+Rate nicht. Wenn ein Wert unleserlich ist, gib null bzw. leer zurück und beschreibe das im Hinweis.`,
+  async erkennen(prep){
+    const key = DB.settings.anthropicKey.trim();
+    if (!key) throw new Error('Kein Anthropic-API-Key hinterlegt (Einstellungen).');
+    const model = DB.settings.model || 'claude-opus-5';
+    const data = await blobToBase64(prep.blob);
+    const content = [
+      prep.isPdf
+        ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data } }
+        : { type:'image', source:{ type:'base64', media_type:prep.mime, data } },
+      { type:'text', text:'Extrahiere die Belegdaten aus diesem Beleg.' },
+    ];
+    const body = {
+      model, max_tokens: 2048,
+      system: this.system,
+      messages:[{ role:'user', content }],
+      output_config:{ format:{ type:'json_schema', schema:this.schema } },
+    };
+    const supportsEffort = !/haiku/.test(model);
+    if (supportsEffort) body.output_config.effort = 'low';
+    const headers = { 'x-api-key':key, 'anthropic-version':'2023-06-01', 'content-type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' };
+    const useFallback = /opus-5|fable/.test(model);   // Server-seitige Ausweichroute bei Sicherheitsablehnung
+    const call = async (withFallback) => {
+      const b = { ...body }; const h = { ...headers };
+      if (withFallback) { b.fallbacks = 'default'; h['anthropic-beta'] = 'server-side-fallback-2026-07-01'; }
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:h, body:JSON.stringify(b) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { const e = new Error((j.error && j.error.message) || ('HTTP ' + r.status)); e.status = r.status; e.body = j; throw e; }
+      return j;
+    };
+    let res;
+    try { res = await call(useFallback); }
+    catch(e){
+      if (useFallback && e.status === 400 && /fallback|beta/i.test(e.message)) res = await call(false);
+      else if (e.status === 401) throw new Error('Anthropic: API-Key ungültig (401).');
+      else if (e.status === 429) throw new Error('Anthropic: Ratenlimit erreicht – bitte kurz warten.');
+      else if (e.status === 529 || e.status >= 500) throw new Error('Anthropic: Dienst vorübergehend überlastet (' + e.status + ').');
+      else throw new Error('Anthropic: ' + e.message);
+    }
+    if (res.stop_reason === 'refusal') throw new Error('Das Modell hat die Auswertung abgelehnt' + (res.stop_details && res.stop_details.explanation ? ': ' + res.stop_details.explanation : '.'));
+    const txt = (res.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    let out;
+    try { out = JSON.parse(txt); } catch(e){ throw new Error('Antwort konnte nicht gelesen werden (kein JSON).'); }
+    out._model = res.model || model;
+    return out;
+  },
+  async test(){
+    const key = DB.settings.anthropicKey.trim();
+    if (!key) throw new Error('Kein API-Key eingetragen.');
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{ 'x-api-key':key, 'anthropic-version':'2023-06-01', 'content-type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' },
+      body:JSON.stringify({ model:DB.settings.model || 'claude-opus-5', max_tokens:32, messages:[{ role:'user', content:'Antworte nur mit dem Wort OK.' }] }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status));
+    return j.model || 'ok';
+  },
+};
+
+// ---------- Upload eines Belegs ----------
+const Upload = {
+  running:new Set(),
+  fileName(b){
+    const betrag = b.brutto != null ? fmtNum.format(b.brutto).replace(/\./g, '') + 'EUR' : 'Betrag';
+    return `${b.datum || 'ohne-Datum'}_${slug(b.haendler || 'Beleg')}_${betrag}.${b.ext || 'jpg'}`;
+  },
+  async run(belegId){
+    if (this.running.has(belegId)) return;
+    const b = DB.beleg(belegId); if (!b) return;
+    if (!Dropbox.connected) { b.status = 'ausstehend'; b.fehler = 'Dropbox nicht verbunden'; DB.save(false); UI.renderBelege(); return; }
+    const p = await Pending.get(belegId);
+    if (!p) { b.status = 'fehler'; b.fehler = 'Bilddatei nicht mehr vorhanden (Browserdaten gelöscht?)'; DB.save(false); UI.renderBelege(); return; }
+    const w = DB.wohnung(b.wohnungId);
+    if (!w) { b.status = 'fehler'; b.fehler = 'Wohnung nicht gefunden'; DB.save(false); UI.renderBelege(); return; }
+    this.running.add(belegId); b.status = 'laedt'; UI.renderBelege(); UI.renderStatus();
+    try {
+      const folder = Dropbox.wohnungPath(w);
+      await Dropbox.ensureFolder(folder);
+      const meta = await Dropbox.upload(folder + '/' + this.fileName(b), p.blob, 'add');
+      b.dropboxPath = meta.path_display || meta.path_lower;
+      b.dateiName = meta.name;
+      b.dropboxLink = await Dropbox.sharedLink(meta.path_lower);
+      b.status = 'ok'; b.fehler = ''; b.geaendert = nowIso();
+      await Pending.del(belegId);
+      DB.save();
+      toast(`Beleg „${b.haendler}“ in Dropbox abgelegt.`, 'ok');
+    } catch(e){
+      b.status = 'fehler'; b.fehler = e.message; DB.save(false);
+      toast('Upload fehlgeschlagen: ' + e.message, 'err', 8000);
+    } finally { this.running.delete(belegId); UI.renderBelege(); UI.renderStatus(); }
+  },
+  async retryAll(){
+    const ids = DB.data.belege.filter(b => b.status !== 'ok').map(b => b.id);
+    for (const id of ids) await this.run(id);
+  },
+};
+
+// ---------- Excel-Export ----------
+const Export = {
+  sheetFor(w, belege){
+    const rows = [];
+    rows.push([`Aufstellung Renovierungs- und Instandhaltungsaufwand – ${w ? w.name : 'Alle Wohnungen'}`]);
+    rows.push([w && w.adresse ? w.adresse : '']);
+    rows.push([`Erstellt am ${fmtDatum(nowIso().slice(0, 10))} mit ${APP.name} · Zeitraum: ${UI.filterLabel()}`]);
+    rows.push([]);
+    const head = ['Nr.', 'Datum', 'Händler / Lieferant', 'Kategorie', 'Bemerkung', 'Netto (€)', 'MwSt (€)', 'Brutto (€)'];
+    if (!w) head.splice(2, 0, 'Wohnung');
+    rows.push(head);
+    const start = rows.length;
+    belege.forEach((b, i) => {
+      const netto = (b.brutto != null && b.mwst != null) ? Math.round((b.brutto - b.mwst) * 100) / 100 : null;
+      const r = [i + 1, b.datum ? new Date(b.datum + 'T00:00:00') : '', b.haendler, kat(b.kategorie).name, b.bemerkung || '', netto, b.mwst, b.brutto];
+      if (!w) r.splice(2, 0, (DB.wohnung(b.wohnungId) || {}).name || '');
+      rows.push(r);
+    });
+    const end = rows.length;
+    const sumRow = new Array(head.length).fill('');
+    sumRow[0] = 'Summe';
+    const c = head.length;
+    rows.push(sumRow);
+    const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates:true });
+    // Summenformeln
+    const col = (i) => XLSX.utils.encode_col(i);
+    for (let k = c - 3; k < c; k++) {
+      const ref = col(k) + (end + 1);
+      ws[ref] = { t:'n', f: end > start ? `SUM(${col(k)}${start + 1}:${col(k)}${end})` : '0', z:'#,##0.00' };
+    }
+    // Zahlen- und Datumsformate, Links
+    for (let r = start; r < end; r++) {
+      for (let k = c - 3; k < c; k++) { const ref = col(k) + (r + 1); if (ws[ref] && ws[ref].v != null && ws[ref].v !== '') { ws[ref].t = 'n'; ws[ref].z = '#,##0.00'; } }
+      const dref = col(1) + (r + 1); if (ws[dref] && ws[dref].v) ws[dref].z = 'DD.MM.YYYY';
+      const b = belege[r - start];
+      const hcol = w ? 2 : 3;
+      if (b.dropboxLink) { const href = col(hcol) + (r + 1); if (ws[href]) ws[href].l = { Target:b.dropboxLink, Tooltip:'Beleg in Dropbox öffnen' }; }
+    }
+    ws['!cols'] = (w ? [5, 12, 28, 20, 34, 13, 13, 14] : [5, 12, 26, 28, 20, 34, 13, 13, 14]).map(wch => ({ wch }));
+    ws['!merges'] = [{ s:{ r:0, c:0 }, e:{ r:0, c:c - 1 } }];
+    return ws;
+  },
+  katSheet(belege){
+    const rows = [['Kategorie', 'Anzahl', 'MwSt (€)', 'Brutto (€)']];
+    for (const k of KATEGORIEN) {
+      const l = belege.filter(b => b.kategorie === k.id);
+      rows.push([k.name, l.length, l.reduce((s, b) => s + (b.mwst || 0), 0), l.reduce((s, b) => s + (b.brutto || 0), 0)]);
+    }
+    rows.push(['Gesamt', belege.length, belege.reduce((s, b) => s + (b.mwst || 0), 0), belege.reduce((s, b) => s + (b.brutto || 0), 0)]);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    for (let r = 1; r < rows.length; r++) for (const k of [2, 3]) { const ref = XLSX.utils.encode_col(k) + (r + 1); if (ws[ref]) { ws[ref].t = 'n'; ws[ref].z = '#,##0.00'; } }
+    ws['!cols'] = [{ wch:22 }, { wch:8 }, { wch:13 }, { wch:14 }];
+    return ws;
+  },
+  run(){
+    if (typeof XLSX === 'undefined') { toast('Excel-Bibliothek nicht geladen (Internetverbindung nötig).', 'err'); return; }
+    const belege = UI.filtered();
+    if (!belege.length) { toast('Keine Belege im aktuellen Filter.', 'warn'); return; }
+    const wb = XLSX.utils.book_new();
+    const wf = $('fWohnung').value;
+    const sheetName = (s) => s.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31) || 'Wohnung';
+    if (wf) {
+      const w = DB.wohnung(wf);
+      XLSX.utils.book_append_sheet(wb, this.sheetFor(w, belege), sheetName(w.name));
+      XLSX.utils.book_append_sheet(wb, this.katSheet(belege), 'Nach Kategorie');
+    } else {
+      XLSX.utils.book_append_sheet(wb, this.sheetFor(null, belege), 'Alle Wohnungen');
+      const used = new Set();
+      for (const w of DB.data.wohnungen) {
+        const l = belege.filter(b => b.wohnungId === w.id);
+        if (!l.length) continue;
+        let n = sheetName(w.name); let i = 2; while (used.has(n)) n = sheetName(w.name).slice(0, 28) + ' ' + (i++); used.add(n);
+        XLSX.utils.book_append_sheet(wb, this.sheetFor(w, l), n);
+      }
+      XLSX.utils.book_append_sheet(wb, this.katSheet(belege), 'Nach Kategorie');
+    }
+    const jahr = $('fJahr').value || (belege[0].datum || '').slice(0, 4) || '';
+    const name = `MietAkte_${wf ? slug(DB.wohnung(wf).name) : 'Alle_Wohnungen'}${jahr ? '_' + jahr : ''}.xlsx`;
+    XLSX.writeFile(wb, name);
+    toast('Excel-Datei erstellt: ' + name, 'ok');
+  },
+};
+
+// ---------- Oberfläche ----------
+const UI = {
+  current:null,       // aktuell vorbereitete Datei (prepareFile)
+  editId:null,
+  init(){
+    // Navigation
+    document.querySelectorAll('nav.tabbar button').forEach(b => b.onclick = () => this.show(b.dataset.view));
+    // Dialog-Schließen
+    document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+    // Filter
+    for (const id of ['fWohnung', 'fKategorie', 'fVon', 'fBis']) $(id).onchange = () => { if (id !== 'fJahr') $('fJahr').value = ''; this.renderBelege(); };
+    $('fJahr').onchange = () => { const y = $('fJahr').value; if (y) { $('fVon').value = y + '-01-01'; $('fBis').value = y + '-12-31'; } else { $('fVon').value = ''; $('fBis').value = ''; } this.renderBelege(); };
+    $('fSuche').oninput = () => this.renderBelege();
+    $('btnFilterReset').onclick = () => { for (const id of ['fWohnung', 'fKategorie', 'fVon', 'fBis', 'fJahr', 'fSuche']) $(id).value = ''; this.renderBelege(); };
+    $('btnExportXlsx').onclick = () => Export.run();
+    $('btnRetryAll').onclick = () => Upload.retryAll();
+    // Erfassen
+    $('btnCam').onclick = () => $('fileCam').click();
+    $('btnFile').onclick = () => $('filePick').click();
+    $('fileCam').onchange = (e) => { if (e.target.files[0]) this.fileChosen(e.target.files[0]); e.target.value = ''; };
+    $('filePick').onchange = (e) => { if (e.target.files[0]) this.fileChosen(e.target.files[0]); e.target.value = ''; };
+    $('btnClearFile').onclick = () => this.clearFile();
+    $('btnReRecognize').onclick = () => this.recognize();
+    $('btnSave').onclick = () => this.saveBeleg();
+    $('btnResetForm').onclick = () => this.resetForm(true);
+    for (const id of ['eBrutto', 'eMwst', 'bBrutto', 'bMwst']) $(id).onblur = () => { const v = parseBetrag($(id).value); $(id).value = v == null ? '' : num2(v); };
+    for (const id of ['eWohnung', 'eKategorie', 'eDatum', 'eHaendler', 'eBrutto', 'eMwst']) $(id).addEventListener('input', () => $(id).classList.remove('erkannt'));
+    // Wohnungen
+    $('btnNewWohnung').onclick = () => this.openWohnung(null);
+    $('dlgWohnung').querySelector('form').onsubmit = (e) => { e.preventDefault(); this.saveWohnung(); };
+    $('wName').oninput = () => { if (!$('wOrdner').dataset.manual) $('wOrdner').value = slug($('wName').value); };
+    $('wOrdner').oninput = () => { $('wOrdner').dataset.manual = $('wOrdner').value ? '1' : ''; };
+    // Beleg bearbeiten
+    $('dlgBeleg').querySelector('form').onsubmit = (e) => { e.preventDefault(); this.saveEdit(); };
+    $('bDelete').onclick = () => this.deleteBeleg();
+    $('bRetry').onclick = () => { const id = this.editId; $('dlgBeleg').close(); Upload.run(id); };
+    // Einstellungen
+    $('sDbxKey').onchange = () => { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); };
+    $('sDbxBase').onchange = () => { DB.settings.dbxBase = $('sDbxBase').value.trim() || '/MietAkte'; DB.saveSettings(); this.renderSettings(); };
+    $('sAntKey').onchange = () => { DB.settings.anthropicKey = $('sAntKey').value.trim(); DB.saveSettings(); };
+    $('sModel').onchange = () => { DB.settings.model = $('sModel').value; DB.saveSettings(); };
+    $('sAuto').onchange = () => { DB.settings.autoErkennen = $('sAuto').value === '1'; DB.saveSettings(); };
+    $('btnToggleKey').onclick = () => { const i = $('sAntKey'); i.type = i.type === 'password' ? 'text' : 'password'; };
+    $('btnDbxConnect').onclick = async () => { try { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); await Dropbox.connect(); } catch(e){ toast(e.message, 'err', 7000); } };
+    $('btnDbxDisconnect').onclick = () => { Dropbox.disconnect(); this.renderSettings(); this.renderStatus(); toast('Dropbox getrennt.'); };
+    $('btnAntTest').onclick = async () => { const t = toast('Teste Verbindung …', '', 0); try { const m = await Vision.test(); t.remove(); toast('Anthropic-API erreichbar (' + m + ').', 'ok'); } catch(e){ t.remove(); toast('Test fehlgeschlagen: ' + e.message, 'err', 8000); } };
+    $('btnSyncNow').onclick = async () => { if (!Dropbox.connected) { toast('Dropbox ist nicht verbunden.', 'warn'); return; } const c = await Sync.pull(); if (!c) { await Sync.push(); if (!Sync.lastError) toast('Abgleich abgeschlossen – keine Änderungen.', 'ok'); } this.renderSettings(); };
+    $('btnBackup').onclick = () => {
+      const blob = new Blob([JSON.stringify(DB.data, null, 1)], { type:'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `MietAkte_Sicherung_${nowIso().slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+    $('btnRestore').onclick = () => $('fileRestore').click();
+    $('fileRestore').onchange = async (e) => {
+      const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      try { const j = JSON.parse(await f.text()); if (!Array.isArray(j.belege)) throw new Error('Keine MietAkte-Sicherung.'); DB.merge(j); DB.save(); this.renderAll(); toast('Sicherung eingespielt (zusammengeführt).', 'ok'); }
+      catch(err){ toast('Wiederherstellung fehlgeschlagen: ' + err.message, 'err'); }
+    };
+    // Splash
+    const splash = $('splash');
+    const hide = () => splash.classList.add('hide');
+    splash.onclick = hide;
+    setTimeout(hide, 2900);
+    $('hdrLogo').onerror = () => { const ph = document.createElement('div'); ph.className = 'logo-ph'; ph.textContent = 'SYNIUM'; $('hdrLogo').replaceWith(ph); };
+    window.addEventListener('online', () => { this.renderStatus(); if (Dropbox.connected) Upload.retryAll(); });
+    window.addEventListener('offline', () => this.renderStatus());
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && Dropbox.connected) Sync.pull(true); });
+  },
+  show(view){
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+    document.querySelectorAll('nav.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    document.querySelector('main').scrollTop = 0;
+    if (view === 'belege') this.renderBelege();
+    if (view === 'wohnungen') this.renderWohnungen();
+    if (view === 'einstellungen') this.renderSettings();
+    if (view === 'erfassen') this.fillSelects();
+  },
+  renderAll(){ this.fillSelects(); this.renderBelege(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
+  renderStatus(){
+    const dot = $('dot'), pill = $('syncPill');
+    const pending = DB.data.belege.filter(b => b.status !== 'ok').length;
+    if (!navigator.onLine) { dot.className = 'statusdot err'; pill.textContent = 'Offline'; }
+    else if (!Dropbox.connected) { dot.className = 'statusdot'; pill.textContent = 'Dropbox getrennt'; }
+    else if (Sync.busy || Upload.running.size) { dot.className = 'statusdot busy'; pill.textContent = 'Übertrage …'; }
+    else if (Sync.lastError) { dot.className = 'statusdot err'; pill.textContent = 'Abgleich-Fehler'; }
+    else if (pending) { dot.className = 'statusdot busy'; pill.textContent = pending + ' ausstehend'; }
+    else { dot.className = 'statusdot on'; pill.textContent = 'Dropbox verbunden'; }
+    $('btnRetryAll').style.display = pending ? '' : 'none';
+  },
+  fillSelects(){
+    const ws = DB.data.wohnungen.slice().sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    const wOpts = (empty) => (empty ? `<option value="">${empty}</option>` : '') + ws.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join('');
+    const kOpts = KATEGORIEN.map(k => `<option value="${k.id}">${k.name}</option>`).join('');
+    const keep = (id, html) => { const s = $(id); const v = s.value; s.innerHTML = html; if ([...s.options].some(o => o.value === v)) s.value = v; };
+    keep('fWohnung', wOpts('Alle Wohnungen')); keep('fKategorie', '<option value="">Alle Kategorien</option>' + kOpts);
+    keep('eWohnung', wOpts(ws.length ? '' : 'Bitte zuerst Wohnung anlegen')); keep('eKategorie', kOpts);
+    keep('bWohnung', wOpts('')); keep('bKategorie', kOpts);
+    const years = [...new Set(DB.data.belege.map(b => (b.datum || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+    keep('fJahr', '<option value="">–</option>' + years.map(y => `<option>${y}</option>`).join(''));
+    if (!$('eWohnung').value && ws.length === 1) $('eWohnung').value = ws[0].id;
+  },
+  filtered(){
+    const wf = $('fWohnung').value, kf = $('fKategorie').value, von = $('fVon').value, bis = $('fBis').value, q = $('fSuche').value.trim().toLowerCase();
+    return DB.data.belege.filter(b =>
+      (!wf || b.wohnungId === wf) && (!kf || b.kategorie === kf) &&
+      (!von || (b.datum || '') >= von) && (!bis || (b.datum || '') <= bis) &&
+      (!q || (b.haendler || '').toLowerCase().includes(q) || (b.bemerkung || '').toLowerCase().includes(q))
+    ).sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || (b.erstellt || '').localeCompare(a.erstellt || ''));
+  },
+  filterLabel(){
+    const von = $('fVon').value, bis = $('fBis').value;
+    if (von && bis) return `${fmtDatum(von)} – ${fmtDatum(bis)}`;
+    if (von) return `ab ${fmtDatum(von)}`; if (bis) return `bis ${fmtDatum(bis)}`; return 'alle';
+  },
+  renderBelege(){
+    const list = this.filtered();
+    // Summen je Wohnung
+    const sums = $('sums'); let html = '';
+    const groups = new Map();
+    for (const b of list) { const g = groups.get(b.wohnungId) || { n:0, brutto:0, mwst:0 }; g.n++; g.brutto += b.brutto || 0; g.mwst += b.mwst || 0; groups.set(b.wohnungId, g); }
+    const tot = { n:list.length, brutto:list.reduce((s, b) => s + (b.brutto || 0), 0), mwst:list.reduce((s, b) => s + (b.mwst || 0), 0) };
+    if (groups.size !== 1) html += `<div class="sum total"><div class="n">Gesamt (${tot.n} Belege)</div><div class="v">${euro(tot.brutto)}</div><div class="s">davon MwSt ${euro(tot.mwst)}</div></div>`;
+    for (const [wid, g] of groups) { const w = DB.wohnung(wid); html += `<div class="sum"><div class="n">${esc(w ? w.name : 'Unbekannt')} · ${g.n}</div><div class="v">${euro(g.brutto)}</div><div class="s">davon MwSt ${euro(g.mwst)}</div></div>`; }
+    sums.innerHTML = html;
+    // Liste
+    const el = $('belegList');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 17h6"/></svg><br>${DB.data.belege.length ? 'Keine Belege im aktuellen Filter.' : 'Noch keine Belege. Über <b>Erfassen</b> den ersten Beleg fotografieren.'}</div>`;
+    } else {
+      el.innerHTML = list.map(b => {
+        const w = DB.wohnung(b.wohnungId); const k = kat(b.kategorie);
+        const st = b.status === 'ok' ? '<span class="st ok">☁ Dropbox</span>' : b.status === 'laedt' ? '<span class="st warn">⟳ lädt …</span>' : b.status === 'fehler' ? '<span class="st err">⚠ Fehler</span>' : '<span class="st warn">⏳ ausstehend</span>';
+        const d = fmtDatum(b.datum).split('.');
+        return `<div class="beleg" data-id="${b.id}">
+          <div class="d"><b>${esc(d[0] || '–')}</b>${esc((d[1] || '') + (d[2] ? '.' + d[2].slice(2) : ''))}</div>
+          <div class="h">${esc(b.haendler || '–')}</div>
+          <div class="b">${euro(b.brutto)}</div>
+          <div class="m"><span class="chip ${k.cls}">${k.name}</span><span>${esc(w ? w.name : '?')}</span>${b.mwst != null ? `<span>MwSt ${euro(b.mwst)}</span>` : ''}</div>
+          ${st}
+        </div>`;
+      }).join('');
+      el.querySelectorAll('.beleg').forEach(x => x.onclick = () => this.openEdit(x.dataset.id));
+    }
+    this.renderStatus();
+  },
+  renderWohnungen(){
+    const el = $('wohnungList');
+    const ws = DB.data.wohnungen.slice().sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    if (!ws.length) { el.innerHTML = '<div class="empty">Noch keine Wohnung angelegt.</div>'; return; }
+    el.innerHTML = ws.map(w => {
+      const n = DB.data.belege.filter(b => b.wohnungId === w.id); const sum = n.reduce((s, b) => s + (b.brutto || 0), 0);
+      return `<div class="wohnung">
+        <div class="n">${esc(w.name)}</div>
+        <div class="acts"><button class="icon" data-edit="${w.id}" title="Bearbeiten"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="icon" data-del="${w.id}" title="Löschen"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>
+        <div class="a">${esc(w.adresse || '–')} · ${n.length} Belege · ${euro(sum)}</div>
+        <div class="p">${esc(Dropbox.wohnungPath(w))}</div>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => this.openWohnung(b.dataset.edit));
+    el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => this.deleteWohnung(b.dataset.del));
+  },
+  renderSettings(){
+    const s = DB.settings;
+    $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sAntKey').value = s.anthropicKey; $('sModel').value = s.model; $('sAuto').value = s.autoErkennen ? '1' : '0';
+    $('redirectUri').textContent = Dropbox.redirectUri();
+    const a = Dropbox.auth;
+    $('dbxAcct').innerHTML = Dropbox.connected ? `<span class="statusdot on"></span> Verbunden${a.account ? ' als <b>' + esc(a.account) + '</b>' : ''}${a.email ? ' (' + esc(a.email) + ')' : ''}` : '<span class="statusdot"></span> Nicht verbunden.';
+    $('btnDbxDisconnect').disabled = !Dropbox.connected;
+    const pend = DB.data.belege.filter(b => b.status !== 'ok').length;
+    $('dataInfo').innerHTML = `<div class="k">Wohnungen</div><div class="v">${DB.data.wohnungen.length}</div><div class="k">Belege</div><div class="v">${DB.data.belege.length}${pend ? ' (' + pend + ' nicht hochgeladen)' : ''}</div><div class="k">Letzte Änderung</div><div class="v">${DB.data.updatedAt ? new Date(DB.data.updatedAt).toLocaleString('de-DE') : '–'}</div><div class="k">Dropbox-Datei</div><div class="v">${esc(Dropbox.base() + '/' + APP.dbFile)}</div>`;
+  },
+
+  // ----- Erfassen -----
+  async fileChosen(file){
+    const note = $('aiNote'); note.className = 'ai-note'; note.textContent = '';
+    try {
+      if (this.current && this.current.previewUrl) URL.revokeObjectURL(this.current.previewUrl);
+      this.current = await prepareFile(file);
+      const pv = $('preview'); pv.classList.add('show');
+      if (this.current.isPdf) { $('previewImg').style.display = 'none'; $('previewPdf').style.display = 'flex'; $('previewPdf').innerHTML = `📄 ${esc(file.name)} (${(file.size / 1024).toFixed(0)} KB)`; }
+      else { $('previewPdf').style.display = 'none'; $('previewImg').style.display = ''; $('previewImg').src = this.current.previewUrl; }
+      if (!$('eDatum').value) $('eDatum').value = '';
+      if (DB.settings.autoErkennen && DB.settings.anthropicKey) await this.recognize();
+      else if (!DB.settings.anthropicKey) { note.className = 'ai-note warn show'; note.textContent = 'Kein Anthropic-API-Key hinterlegt – Werte bitte manuell eintragen (Einstellungen → Betragserkennung).'; }
+    } catch(e){ toast(e.message, 'err', 7000); this.clearFile(); }
+  },
+  clearFile(){
+    if (this.current && this.current.previewUrl) URL.revokeObjectURL(this.current.previewUrl);
+    this.current = null; $('preview').classList.remove('show', 'busy'); $('previewImg').src = ''; $('aiNote').className = 'ai-note';
+  },
+  async recognize(){
+    if (!this.current) { toast('Bitte zuerst ein Foto aufnehmen.', 'warn'); return; }
+    const pv = $('preview'), note = $('aiNote');
+    pv.classList.add('busy'); $('btnReRecognize').disabled = true; $('btnSave').disabled = true;
+    note.className = 'ai-note show'; note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Beleg wird ausgewertet …';
+    try {
+      const r = await Vision.erkennen(this.current);
+      const set = (id, v) => { const el = $(id); if (v != null && v !== '') { el.value = v; el.classList.add('erkannt'); } };
+      set('eHaendler', r.haendler);
+      set('eDatum', parseDatum(r.datum));
+      set('eBrutto', r.brutto != null ? num2(r.brutto) : '');
+      set('eMwst', r.mwst != null ? num2(r.mwst) : '');
+      if (r.kategorie_vorschlag && !$('eKategorie').dataset.touched) set('eKategorie', r.kategorie_vorschlag);
+      if (r.belegnummer && !$('eBemerkung').value) $('eBemerkung').value = 'Beleg-Nr. ' + r.belegnummer;
+      const parts = [];
+      parts.push(`Erkannt (${r.zuversicht || '?'}e Sicherheit${r.mwst_satz ? ', ' + r.mwst_satz + ' % MwSt' : ''}${r.waehrung && r.waehrung !== 'EUR' ? ', Währung ' + r.waehrung + '!' : ''}).`);
+      if (r.hinweis) parts.push(r.hinweis);
+      if (r.brutto == null) parts.push('Betrag nicht erkannt – bitte eintragen.');
+      note.className = 'ai-note show' + ((r.zuversicht === 'niedrig' || r.brutto == null || (r.waehrung && r.waehrung !== 'EUR')) ? ' warn' : '');
+      note.textContent = parts.join(' ');
+    } catch(e){
+      note.className = 'ai-note err show'; note.textContent = 'Erkennung fehlgeschlagen: ' + e.message + ' Werte bitte manuell eintragen.';
+    } finally { pv.classList.remove('busy'); $('btnReRecognize').disabled = false; $('btnSave').disabled = false; }
+  },
+  resetForm(keepWohnung){
+    const w = $('eWohnung').value;
+    for (const id of ['eDatum', 'eHaendler', 'eBrutto', 'eMwst', 'eBemerkung']) { $(id).value = ''; $(id).classList.remove('erkannt'); }
+    $('eKategorie').value = 'erhaltung'; $('eKategorie').classList.remove('erkannt'); delete $('eKategorie').dataset.touched;
+    if (keepWohnung) $('eWohnung').value = w;
+    this.clearFile();
+  },
+  async saveBeleg(){
+    if (!this.current) { toast('Bitte zuerst ein Foto des Belegs aufnehmen oder eine Datei wählen.', 'warn'); return; }
+    const wohnungId = $('eWohnung').value; if (!wohnungId) { toast('Bitte eine Wohnung auswählen (ggf. zuerst anlegen).', 'warn'); this.show('wohnungen'); return; }
+    const datum = $('eDatum').value; if (!datum) { toast('Bitte das Belegdatum eintragen.', 'warn'); $('eDatum').focus(); return; }
+    const haendler = $('eHaendler').value.trim(); if (!haendler) { toast('Bitte den Händler eintragen.', 'warn'); $('eHaendler').focus(); return; }
+    const brutto = parseBetrag($('eBrutto').value); if (brutto == null) { toast('Bitte den Bruttobetrag eintragen.', 'warn'); $('eBrutto').focus(); return; }
+    const mwst = parseBetrag($('eMwst').value);
+    if (mwst != null && mwst > brutto) { toast('Die MwSt kann nicht größer als der Bruttobetrag sein.', 'warn'); $('eMwst').focus(); return; }
+    const b = { id:uid(), wohnungId, datum, haendler, brutto, mwst, kategorie:$('eKategorie').value, bemerkung:$('eBemerkung').value.trim(),
+      ext:this.current.ext, mime:this.current.mime, dateiName:'', dropboxPath:'', dropboxLink:'', status:'ausstehend', fehler:'', erstellt:nowIso(), geaendert:nowIso() };
+    $('btnSave').disabled = true;
+    try {
+      await Pending.put({ id:b.id, blob:this.current.blob, name:Upload.fileName(b) });
+      DB.data.belege.push(b); DB.save();
+      this.resetForm(true);
+      this.show('belege');
+      toast(Dropbox.connected ? 'Beleg gespeichert – Upload läuft …' : 'Beleg lokal gespeichert. Upload erfolgt, sobald Dropbox verbunden ist.', Dropbox.connected ? 'ok' : 'warn');
+      Upload.run(b.id);
+    } catch(e){ toast('Speichern fehlgeschlagen: ' + e.message, 'err', 8000); }
+    finally { $('btnSave').disabled = false; }
+  },
+
+  // ----- Beleg bearbeiten -----
+  openEdit(id){
+    const b = DB.beleg(id); if (!b) return;
+    this.editId = id; this.fillSelects();
+    $('bWohnung').value = b.wohnungId; $('bKategorie').value = b.kategorie; $('bDatum').value = b.datum || ''; $('bHaendler').value = b.haendler || '';
+    $('bBrutto').value = num2(b.brutto); $('bMwst').value = num2(b.mwst); $('bBemerkung').value = b.bemerkung || '';
+    const st = b.status === 'ok' ? '<span class="chip ok">☁ In Dropbox</span>' : b.status === 'laedt' ? '<span class="chip warn">lädt …</span>' : `<span class="chip ${b.status === 'fehler' ? 'err' : 'warn'}">${b.status === 'fehler' ? '⚠ Upload fehlgeschlagen' : '⏳ Upload ausstehend'}</span>`;
+    $('bInfo').innerHTML = `<div class="k">Status</div><div class="v">${st}${b.fehler ? '<div style="color:var(--red);font-size:12px;margin-top:4px">' + esc(b.fehler) + '</div>' : ''}</div>
+      ${b.dropboxPath ? `<div class="k">Datei</div><div class="v">${esc(b.dropboxPath)}</div>` : ''}
+      ${b.dropboxLink ? `<div class="k">Link</div><div class="v"><a href="${esc(b.dropboxLink)}" target="_blank" rel="noopener">Beleg in Dropbox öffnen ↗</a></div>` : ''}
+      <div class="k">Erfasst</div><div class="v">${new Date(b.erstellt).toLocaleString('de-DE')}</div>`;
+    $('bRetry').style.display = b.status === 'ok' || b.status === 'laedt' ? 'none' : '';
+    $('dlgBeleg').showModal();
+  },
+  saveEdit(){
+    const b = DB.beleg(this.editId); if (!b) return;
+    const brutto = parseBetrag($('bBrutto').value); if (brutto == null) { toast('Bruttobetrag fehlt.', 'warn'); return; }
+    Object.assign(b, { wohnungId:$('bWohnung').value, kategorie:$('bKategorie').value, datum:$('bDatum').value, haendler:$('bHaendler').value.trim(), brutto, mwst:parseBetrag($('bMwst').value), bemerkung:$('bBemerkung').value.trim(), geaendert:nowIso() });
+    DB.save(); $('dlgBeleg').close(); this.renderBelege(); toast('Beleg aktualisiert.', 'ok');
+  },
+  async deleteBeleg(){
+    const b = DB.beleg(this.editId); if (!b) return;
+    $('dlgBeleg').close();
+    if (!await confirmDlg('Beleg löschen?', `„${b.haendler}“ vom ${fmtDatum(b.datum)} über ${euro(b.brutto)} wird aus der Tabelle entfernt. Die Datei in Dropbox bleibt erhalten.`)) return;
+    DB.data.belege = DB.data.belege.filter(x => x.id !== b.id);
+    DB.data.geloescht.push({ id:b.id, at:nowIso() });
+    Pending.del(b.id).catch(() => {});
+    DB.save(); this.renderBelege(); toast('Beleg gelöscht.');
+  },
+
+  // ----- Wohnungen -----
+  openWohnung(id){
+    const w = id ? DB.wohnung(id) : null;
+    $('dlgWohnungTitle').textContent = w ? 'Wohnung bearbeiten' : 'Wohnung anlegen';
+    $('wName').value = w ? w.name : ''; $('wAdresse').value = w ? w.adresse || '' : ''; $('wOrdner').value = w ? w.ordner || '' : ''; $('wOrdner').dataset.manual = w ? '1' : '';
+    $('dlgWohnung').dataset.id = id || '';
+    $('dlgWohnung').showModal(); setTimeout(() => $('wName').focus(), 50);
+  },
+  async saveWohnung(){
+    const name = $('wName').value.trim(); if (!name) { toast('Bitte eine Bezeichnung eingeben.', 'warn'); return; }
+    const id = $('dlgWohnung').dataset.id;
+    const ordner = slug($('wOrdner').value || name);
+    let w = id ? DB.wohnung(id) : null;
+    if (w) Object.assign(w, { name, adresse:$('wAdresse').value.trim(), ordner, geaendert:nowIso() });
+    else { w = { id:uid(), name, adresse:$('wAdresse').value.trim(), ordner, erstellt:nowIso(), geaendert:nowIso() }; DB.data.wohnungen.push(w); }
+    DB.save(); $('dlgWohnung').close(); this.fillSelects(); this.renderWohnungen();
+    if (Dropbox.connected) {
+      try { await Dropbox.ensureFolder(Dropbox.wohnungPath(w)); toast(`Dropbox-Ordner „${Dropbox.wohnungPath(w)}“ bereit.`, 'ok'); }
+      catch(e){ toast('Ordner konnte nicht angelegt werden: ' + e.message + ' (wird beim ersten Upload erneut versucht)', 'warn', 7000); }
+    } else toast('Wohnung gespeichert. Der Dropbox-Ordner wird beim ersten Upload angelegt.', 'ok');
+  },
+  async deleteWohnung(id){
+    const w = DB.wohnung(id); if (!w) return;
+    const n = DB.data.belege.filter(b => b.wohnungId === id).length;
+    if (n) { toast(`„${w.name}“ hat noch ${n} Belege. Bitte zuerst die Belege löschen oder umbuchen.`, 'warn', 6000); return; }
+    if (!await confirmDlg('Wohnung löschen?', `„${w.name}“ wird entfernt. Der Dropbox-Ordner bleibt bestehen.`)) return;
+    DB.data.wohnungen = DB.data.wohnungen.filter(x => x.id !== id);
+    DB.data.geloescht.push({ id, at:nowIso() });
+    DB.save(); this.fillSelects(); this.renderWohnungen(); toast('Wohnung gelöscht.');
+  },
+};
+
+// ---------- Start ----------
+(async function main(){
+  DB.load(); Dropbox.load();
+  UI.init();
+  UI.renderAll();
+  UI.show('belege');
+  $('eKategorie').addEventListener('change', () => { $('eKategorie').dataset.touched = '1'; });
+  if (await Dropbox.handleRedirect()) { UI.renderSettings(); UI.show('einstellungen'); }
+  if (Dropbox.connected) {
+    if (!Dropbox.auth.account) Dropbox.loadAccount().then(() => UI.renderSettings());
+    await Sync.pull(true);
+    Upload.retryAll();
+  }
+  UI.renderStatus();
+})().catch(e => { console.error(e); toast('Startfehler: ' + e.message, 'err', 0); $('splash').classList.add('hide'); });
+</script>
+</body>
+</html>
