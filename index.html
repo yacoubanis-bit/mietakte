@@ -351,6 +351,10 @@
         </div>
       </div>
       <div class="ai-note" id="aiNote"></div>
+      <details id="ocrDetails" style="display:none; margin-top:10px">
+        <summary style="cursor:pointer; font-size:12.5px; color:var(--muted); font-weight:600">Erkannten Text anzeigen</summary>
+        <pre id="ocrText" style="margin:8px 0 0; padding:10px 12px; font-family:var(--mono); font-size:11.5px; line-height:1.45; color:var(--muted); background:var(--field); border:1px solid var(--border); border-radius:10px; white-space:pre-wrap; word-break:break-word; max-height:240px; overflow:auto"></pre>
+      </details>
     </div>
 
     <div class="card">
@@ -412,26 +416,21 @@
     </div>
 
     <div class="card">
-      <h2>Betragserkennung (Anthropic API)</h2>
-      <div class="keyrow">
-        <label class="f"><span class="lab">API-Key</span><input type="password" id="sAntKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false"></label>
-        <button class="icon" id="btnToggleKey" title="Anzeigen"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
-      </div>
+      <h2>Texterkennung (offline im Browser)</h2>
       <div class="row">
-        <label class="f"><span class="lab">Modell</span>
-          <select id="sModel">
-            <option value="claude-opus-5">Claude Opus 5 (Standard)</option>
-            <option value="claude-sonnet-5">Claude Sonnet 5 (günstiger)</option>
-            <option value="claude-haiku-4-5">Claude Haiku 4.5 (am günstigsten)</option>
-            <option value="claude-fable-5-1">Claude Fable 5.1 (höchste Qualität)</option>
+        <label class="f"><span class="lab">Sprache der Belege</span>
+          <select id="sOcrLang">
+            <option value="deu">Deutsch</option>
+            <option value="deu+eng">Deutsch + Englisch</option>
           </select>
         </label>
         <label class="f narrow" style="min-width:150px"><span class="lab">Automatisch erkennen</span>
           <select id="sAuto"><option value="1">Ja, nach Foto</option><option value="0">Nein, manuell</option></select>
         </label>
       </div>
-      <div class="btnrow"><button id="btnAntTest">Verbindung testen</button></div>
-      <div class="hint">Der Schlüssel wird nur lokal im Browser gespeichert (localStorage) und direkt an <code>api.anthropic.com</code> gesendet. Für einen späteren Mehrbenutzerbetrieb sollte der Aufruf über einen kleinen Server laufen, damit der Schlüssel nicht im Browser liegt.</div>
+      <div class="acct" id="ocrState">Erkennungsmodul noch nicht geladen.</div>
+      <div class="btnrow"><button id="btnOcrPreload">Erkennungsmodul jetzt laden</button></div>
+      <div class="hint">Die Erkennung läuft vollständig auf dem Gerät (Tesseract-OCR als WebAssembly). Es werden keine Belege an einen KI-Dienst gesendet. Beim ersten Einsatz lädt der Browser einmalig das Modul und die deutschen Sprachdaten (ca. 15 MB) und speichert sie lokal zwischen. Betrag, MwSt, Datum und Händler werden anschließend regelbasiert aus dem erkannten Text ermittelt – bitte immer gegenprüfen.</div>
     </div>
 
     <div class="card">
@@ -448,7 +447,7 @@
 
     <div class="card">
       <h2>Info</h2>
-      <div class="hint" style="margin-top:0">MietAkte v1.0 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
+      <div class="hint" style="margin-top:0">MietAkte v1.1 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Texterkennung läuft lokal auf dem Gerät, keine KI-Cloud. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
     </div>
   </section>
 
@@ -515,6 +514,7 @@
 <div id="toasts"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/7.0.0/tesseract.min.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -601,7 +601,7 @@ function confirmDlg(title, text, okLabel = 'Ja, löschen'){
 // ---------- Datenhaltung ----------
 const DB = {
   data:{ version:1, wohnungen:[], belege:[], geloescht:[], updatedAt:'' },
-  settings:{ dbxAppKey:'', dbxBase:'/MietAkte', anthropicKey:'', model:'claude-opus-5', autoErkennen:true },
+  settings:{ dbxAppKey:'', dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true },
   load(){
     try { const s = JSON.parse(localStorage.getItem(KEY('settings')) || 'null'); if (s) Object.assign(this.settings, s); } catch(e){ console.warn('Einstellungen laden:', e); }
     try {
@@ -795,115 +795,251 @@ const Sync = {
 };
 
 // ---------- Bildaufbereitung ----------
+// Liefert { blob (Datei für Dropbox), ocrCanvas (aufbereitetes Bild für die Texterkennung), previewUrl, … }
 async function prepareFile(file){
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  let bmp;
   if (isPdf) {
     if (file.size > 30 * 1024 * 1024) throw new Error('PDF ist größer als 30 MB.');
-    return { blob:file, mime:'application/pdf', ext:'pdf', previewUrl:'', isPdf:true, name:file.name };
+    bmp = await renderPdfPage(file);               // erste Seite als Bild (für Vorschau + OCR)
+  } else {
+    if (!/^image\//.test(file.type)) throw new Error('Bitte ein Bild (JPG/PNG/HEIC) oder eine PDF-Datei auswählen.');
+    try { bmp = await createImageBitmap(file, { imageOrientation:'from-image' }); }
+    catch(e){
+      bmp = await new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('Bildformat wird von diesem Browser nicht unterstützt (evtl. HEIC). Bitte als JPG aufnehmen.')); img.src = URL.createObjectURL(file); });
+    }
   }
-  if (!/^image\//.test(file.type)) throw new Error('Bitte ein Bild (JPG/PNG/HEIC) oder eine PDF-Datei auswählen.');
-  let bmp;
-  try { bmp = await createImageBitmap(file, { imageOrientation:'from-image' }); }
-  catch(e){
-    // Fallback über <img> (z. B. HEIC ohne Unterstützung → Fehler)
-    bmp = await new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('Bildformat wird von diesem Browser nicht unterstützt (evtl. HEIC). Bitte als JPG aufnehmen.')); img.src = URL.createObjectURL(file); });
-  }
-  const MAX = 1800;
-  const scale = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
-  const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+  const draw = (max, upscale = false) => {
+    let scale = max / Math.max(bmp.width, bmp.height);
+    scale = upscale ? Math.min(3, scale) : Math.min(1, scale);   // OCR: kleine Bilder hochskalieren (bessere Erkennung)
+    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(bmp, 0, 0, w, h);
+    return cv;
+  };
+  const storeCv = draw(1800);
+  const ocrCanvas = enhanceForOcr(draw(2400, true));
   if (bmp.close) bmp.close();
-  const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.86));
-  if (!blob) throw new Error('Bild konnte nicht verarbeitet werden.');
-  return { blob, mime:'image/jpeg', ext:'jpg', previewUrl:URL.createObjectURL(blob), isPdf:false, name:file.name };
+  let blob = file, mime = 'application/pdf', ext = 'pdf';
+  if (!isPdf) {
+    blob = await new Promise(res => storeCv.toBlob(res, 'image/jpeg', 0.86));
+    if (!blob) throw new Error('Bild konnte nicht verarbeitet werden.');
+    mime = 'image/jpeg'; ext = 'jpg';
+  }
+  const previewBlob = isPdf ? await new Promise(res => storeCv.toBlob(res, 'image/jpeg', 0.8)) : blob;
+  return { blob, mime, ext, previewUrl:URL.createObjectURL(previewBlob), isPdf, name:file.name, ocrCanvas };
 }
-function blobToBase64(blob){
-  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); });
+// PDF: erste Seite über pdf.js (wird nur bei Bedarf nachgeladen) in ein Bild rendern
+async function renderPdfPage(file){
+  let pdfjs;
+  try {
+    pdfjs = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.min.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.worker.min.mjs';
+  } catch(e){ throw new Error('PDF-Modul konnte nicht geladen werden (Internetverbindung nötig).'); }
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const page = await doc.getPage(1);
+  const vp0 = page.getViewport({ scale:1 });
+  const scale = Math.min(4, 2400 / Math.max(vp0.width, vp0.height));
+  const vp = page.getViewport({ scale });
+  const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  await page.render({ canvasContext:ctx, viewport:vp }).promise;
+  doc.destroy && doc.destroy();
+  return cv;
+}
+// Graustufen + Kontraststreckung (Perzentile), verbessert die OCR bei Handyfotos deutlich
+function enhanceForOcr(cv){
+  const ctx = cv.getContext('2d', { willReadFrequently:true });
+  const img = ctx.getImageData(0, 0, cv.width, cv.height); const d = img.data;
+  const hist = new Uint32Array(256); const n = d.length / 4;
+  const gray = new Uint8ClampedArray(n);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) { const g = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000; gray[p] = g; hist[g | 0]++; }
+  let lo = 0, hi = 255, acc = 0;
+  for (let i = 0; i < 256; i++) { acc += hist[i]; if (acc > n * 0.02) { lo = i; break; } }
+  acc = 0; for (let i = 255; i >= 0; i--) { acc += hist[i]; if (acc > n * 0.02) { hi = i; break; } }
+  const range = Math.max(1, hi - lo);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) { const v = Math.max(0, Math.min(255, ((gray[p] - lo) / range) * 255)); d[i] = d[i + 1] = d[i + 2] = v; }
+  ctx.putImageData(img, 0, 0);
+  return cv;
 }
 
-// ---------- Belegerkennung (Anthropic Messages API, strukturierte JSON-Ausgabe) ----------
-const Vision = {
-  schema:{
-    type:'object', additionalProperties:false,
-    properties:{
-      haendler:  { type:'string', description:'Name des Händlers/Lieferanten/Handwerkers (kurz, ohne Rechtsform-Zusätze wie GmbH wenn möglich)' },
-      datum:     { type:'string', description:'Rechnungs-/Belegdatum als JJJJ-MM-TT, leer wenn nicht erkennbar' },
-      brutto:    { anyOf:[{ type:'number' }, { type:'null' }], description:'Gesamtbetrag brutto in Euro (zu zahlender Endbetrag)' },
-      mwst:      { anyOf:[{ type:'number' }, { type:'null' }], description:'Ausgewiesener Umsatzsteuerbetrag in Euro (Summe aller MwSt-Beträge), null wenn nicht ausgewiesen' },
-      mwst_satz: { anyOf:[{ type:'number' }, { type:'null' }], description:'Vorherrschender Steuersatz in Prozent (z. B. 19 oder 7), null wenn unbekannt' },
-      waehrung:  { type:'string', description:'Währungscode, z. B. EUR' },
-      belegnummer:{ type:'string', description:'Rechnungs-/Belegnummer, leer wenn keine' },
-      kategorie_vorschlag:{ type:'string', enum:['erhaltung','herstellung','klein','sonstiges'], description:'Vorschlag: erhaltung = Reparatur/Renovierung/Instandhaltung; herstellung = Neuanschaffung/Erweiterung mit wesentlicher Verbesserung; klein = Kleinmaterial unter ca. 250 € netto; sonstiges' },
-      zuversicht:{ type:'string', enum:['hoch','mittel','niedrig'], description:'Wie sicher sind Betrag und Datum erkannt' },
-      hinweis:   { type:'string', description:'Kurzer Hinweis auf Unsicherheiten oder Besonderheiten (deutsch), leer wenn keine' },
-    },
-    required:['haendler','datum','brutto','mwst','mwst_satz','waehrung','belegnummer','kategorie_vorschlag','zuversicht','hinweis'],
+// ---------- Belegerkennung: Texterkennung (Tesseract, lokal im Browser) + regelbasierte Auswertung ----------
+const OCR = {
+  worker:null, lang:'', loading:null, progress:'',
+  ready(){ return !!this.worker && this.lang === (DB.settings.ocrLang || 'deu'); },
+  async load(onProgress){
+    const lang = DB.settings.ocrLang || 'deu';
+    if (this.worker && this.lang === lang) return this.worker;
+    if (this.loading) return this.loading;
+    if (typeof Tesseract === 'undefined') throw new Error('Erkennungsmodul nicht geladen – beim ersten Start ist eine Internetverbindung nötig.');
+    this.loading = (async () => {
+      try {
+        if (this.worker) { await this.worker.terminate().catch(() => {}); this.worker = null; }
+        const labels = { 'loading tesseract core':'Lade Erkennungsmodul', 'initializing tesseract':'Initialisiere', 'loading language traineddata':'Lade Sprachdaten', 'initializing api':'Starte Erkennung', 'recognizing text':'Lese Beleg' };
+        const w = await Tesseract.createWorker(lang, 1, {
+          logger: m => { const l = labels[m.status] || m.status; this.progress = l + (m.progress != null ? ' ' + Math.round(m.progress * 100) + ' %' : ''); if (onProgress) onProgress(this.progress); },
+        });
+        await w.setParameters({ preserve_interword_spaces:'1' });
+        this.worker = w; this.lang = lang;
+        return w;
+      } finally { this.loading = null; }
+    })();
+    return this.loading;
   },
-  system:`Du bist ein Assistent zur Belegerfassung für die Vermietung von Wohnungen in Deutschland (Werbungskosten aus Vermietung und Verpachtung).
-Du erhältst das Foto oder die PDF eines Belegs (Kassenbon, Rechnung, Quittung). Lies die Werte sorgfältig ab:
-- brutto: der zu zahlende Gesamtbetrag (Endsumme inkl. MwSt). Deutsche Schreibweise 1.234,56 bedeutet 1234.56.
-- mwst: der ausgewiesene Umsatzsteuerbetrag. Bei Kassenbons oft als "MwSt", "USt", "inkl. 19 %" ausgewiesen. Wenn nur Netto und Satz angegeben sind, berechne die MwSt. Bei Kleinunternehmer-Rechnungen ohne USt-Ausweis: null.
-- datum: das Rechnungs- bzw. Belegdatum, nicht das Fälligkeits- oder Lieferdatum.
-- haendler: der Name des Verkäufers/Handwerksbetriebs.
-Rate nicht. Wenn ein Wert unleserlich ist, gib null bzw. leer zurück und beschreibe das im Hinweis.`,
-  async erkennen(prep){
-    const key = DB.settings.anthropicKey.trim();
-    if (!key) throw new Error('Kein Anthropic-API-Key hinterlegt (Einstellungen).');
-    const model = DB.settings.model || 'claude-opus-5';
-    const data = await blobToBase64(prep.blob);
-    const content = [
-      prep.isPdf
-        ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data } }
-        : { type:'image', source:{ type:'base64', media_type:prep.mime, data } },
-      { type:'text', text:'Extrahiere die Belegdaten aus diesem Beleg.' },
-    ];
-    const body = {
-      model, max_tokens: 2048,
-      system: this.system,
-      messages:[{ role:'user', content }],
-      output_config:{ format:{ type:'json_schema', schema:this.schema } },
-    };
-    const supportsEffort = !/haiku/.test(model);
-    if (supportsEffort) body.output_config.effort = 'low';
-    const headers = { 'x-api-key':key, 'anthropic-version':'2023-06-01', 'content-type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' };
-    const useFallback = /opus-5|fable/.test(model);   // Server-seitige Ausweichroute bei Sicherheitsablehnung
-    const call = async (withFallback) => {
-      const b = { ...body }; const h = { ...headers };
-      if (withFallback) { b.fallbacks = 'default'; h['anthropic-beta'] = 'server-side-fallback-2026-07-01'; }
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:h, body:JSON.stringify(b) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) { const e = new Error((j.error && j.error.message) || ('HTTP ' + r.status)); e.status = r.status; e.body = j; throw e; }
-      return j;
-    };
-    let res;
-    try { res = await call(useFallback); }
-    catch(e){
-      if (useFallback && e.status === 400 && /fallback|beta/i.test(e.message)) res = await call(false);
-      else if (e.status === 401) throw new Error('Anthropic: API-Key ungültig (401).');
-      else if (e.status === 429) throw new Error('Anthropic: Ratenlimit erreicht – bitte kurz warten.');
-      else if (e.status === 529 || e.status >= 500) throw new Error('Anthropic: Dienst vorübergehend überlastet (' + e.status + ').');
-      else throw new Error('Anthropic: ' + e.message);
-    }
-    if (res.stop_reason === 'refusal') throw new Error('Das Modell hat die Auswertung abgelehnt' + (res.stop_details && res.stop_details.explanation ? ': ' + res.stop_details.explanation : '.'));
-    const txt = (res.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-    let out;
-    try { out = JSON.parse(txt); } catch(e){ throw new Error('Antwort konnte nicht gelesen werden (kein JSON).'); }
-    out._model = res.model || model;
-    return out;
-  },
-  async test(){
-    const key = DB.settings.anthropicKey.trim();
-    if (!key) throw new Error('Kein API-Key eingetragen.');
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{ 'x-api-key':key, 'anthropic-version':'2023-06-01', 'content-type':'application/json', 'anthropic-dangerous-direct-browser-access':'true' },
-      body:JSON.stringify({ model:DB.settings.model || 'claude-opus-5', max_tokens:32, messages:[{ role:'user', content:'Antworte nur mit dem Wort OK.' }] }),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status));
-    return j.model || 'ok';
+  async erkennen(prep, onProgress){
+    const w = await this.load(onProgress);
+    if (!prep.ocrCanvas) throw new Error('Kein Bild zur Erkennung vorhanden.');
+    const { data } = await w.recognize(prep.ocrCanvas, {}, { text:true });
+    const text = data.text || '';
+    const known = [...new Set(DB.data.belege.map(b => (b.haendler || '').trim()).filter(Boolean))];
+    const r = parseReceipt(text, known);
+    r.text = text; r.confidence = data.confidence;
+    return r;
   },
 };
+
+// Bekannte Händler/Baumärkte – Schreibweise für das Feld „Händler“
+const HAENDLER = ['Bauhaus','OBI','Hornbach','toom','Hagebau','Hagebaumarkt','Globus Baumarkt','Hellweg','BayWa','Raiffeisen','Würth','Berner','IKEA','Poco','Roller','XXXLutz','Höffner','Möbel Martin','Segmüller','Amazon','eBay','Otto','Conrad','Media Markt','Saturn','Expert','Euronics','Rewe','Edeka','Lidl','Aldi','Kaufland','Netto','Penny','Norma','dm','Rossmann','Müller','Action','Tedi','Woolworth','KiK','Jysk','Dänisches Bettenlager','Hagebau','Bauking','Raab Karcher','Reisser','Richter+Frenzel','Elektro','Sanitär','Fliesen','Malermeister','Dachdecker','Heizung','Schornsteinfeger','Hausverwaltung','Stadtwerke','Techem','ista','Brunata','Minol','Kalo','Vodafone','Telekom','Baumarkt','Bauzentrum','Globus','Hagebau'];
+
+// Regelbasierte Auswertung des OCR-Textes eines deutschen Belegs
+function parseReceipt(text, knownHaendler = []){
+  const rawLines = String(text || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const out = { haendler:'', datum:'', brutto:null, mwst:null, mwst_satz:null, belegnummer:'', zuversicht:'niedrig', hinweis:'', treffer:{} };
+  const hints = [];
+
+  // --- Beträge in einer Zeile finden (deutsch 1.234,56 / OCR-Varianten 1234.56, 43,89 €, -5,00) ---
+  const AMOUNT = /(?<![\d,.])(-?\d{1,3}(?:[ .]\d{3})+|\-?\d+)\s?[,.]\s?(\d{2})(?!\d)/g;
+  const amountsIn = (line) => {
+    const res = []; let m;
+    const l = line.replace(/(\d)\s?[oO]\s?(\d)/g, '$10$2');            // OCR: o statt 0 zwischen Ziffern
+    while ((m = AMOUNT.exec(l))) {
+      const ip = m[1].replace(/[ .]/g, '');
+      const v = Number(ip + '.' + m[2]);
+      if (!isNaN(v) && Math.abs(v) < 10000000) res.push({ v, idx:m.index, len:m[0].length });
+    }
+    return res;
+  };
+  const pct = (line) => { const m = /(\d{1,2})[,.]?\d?\s?%/.exec(line); return m ? Number(m[1]) : null; };
+
+  // --- Datum ---
+  const dateRe = /\b(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4}|\d{2})\b|\b(\d{4})-(\d{2})-(\d{2})\b/g;
+  const dates = [];
+  rawLines.forEach((l, i) => { let m; while ((m = dateRe.exec(l))) {
+    let d, mo, y;
+    if (m[4]) { y = +m[4]; mo = +m[5]; d = +m[6]; } else { d = +m[1]; mo = +m[2]; y = +m[3]; if (y < 100) y += 2000; }
+    if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && y >= 2000 && y <= 2100) {
+      const prio = /datum|rechnung|beleg|kauf/i.test(l) ? 2 : /lieferung|liefer|fällig|faellig|zahlbar|termin|gültig|gueltig|ablauf/i.test(l) ? 0 : 1;
+      dates.push({ iso:`${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`, prio, i });
+    }
+  } });
+  if (dates.length) { dates.sort((a, b) => b.prio - a.prio || a.i - b.i); out.datum = dates[0].iso; out.treffer.datum = rawLines[dates[0].i]; }
+  else hints.push('Datum nicht gefunden.');
+
+  // --- Bruttobetrag ---
+  const TOTAL_STRONG = /(zu\s?zahlen|zahlbetrag|endbetrag|gesamtbetrag|rechnungsbetrag|gesamtsumme|endsumme|summe\b|gesamt\b|total\b|betrag\b|brutto)/i;
+  const TOTAL_WEAK = /(bar\b|ec[- ]?karte|girocard|kartenzahlung|visa|mastercard|paypal|kreditkarte|zahlung)/i;
+  const EXCLUDE = /(rückgeld|rueckgeld|wechselgeld|gegeben|rückgabe|rueckgabe|netto|mwst|ust\b|steuer|rabatt|gutschein|pfand|skonto|zwischensumme|punkte|payback|tel|kundennr|kunden-nr|steuernr|ust-id|iban|blz|nr\.?\s?\d|artikel)/i;
+  let best = null;
+  rawLines.forEach((l, i) => {
+    const am = amountsIn(l); if (!am.length) return;
+    const last = am[am.length - 1];
+    let score = 0;
+    if (TOTAL_STRONG.test(l)) score += 5;
+    if (TOTAL_WEAK.test(l)) score += 2;
+    if (/brutto|gesamt|summe|zu zahlen|endbetrag/i.test(l) && /mwst|ust|steuer|netto/i.test(l)) score += 1;  // „Gesamt inkl. MwSt“
+    else if (EXCLUDE.test(l)) score -= 4;
+    if (/eur|€/i.test(l)) score += 1;
+    if (last.v <= 0) score -= 3;
+    score += Math.min(2, last.v / 500);          // größere Beträge leicht bevorzugen
+    if (!best || score > best.score || (score === best.score && last.v > best.v)) best = { v:last.v, score, i, l };
+  });
+  if (best && best.score > -2) {
+    // Ohne Schlüsselwort: plausibelster (größter) positiver Betrag außerhalb der Ausschlusszeilen
+    if (best.score < 3) {
+      let max = null;
+      rawLines.forEach((l, i) => { if (EXCLUDE.test(l)) return; for (const a of amountsIn(l)) if (a.v > 0 && (!max || a.v > max.v)) max = { v:a.v, i, l }; });
+      if (max) best = { ...max, score:0 };
+      hints.push('Summe ohne eindeutiges Schlüsselwort erkannt.');
+    }
+    out.brutto = Math.round(best.v * 100) / 100; out.treffer.brutto = best.l;
+  } else hints.push('Gesamtbetrag nicht gefunden.');
+
+  // --- MwSt ---
+  const TAX = /(mwst|mw\.?st|ust\b|u\.st|umsatzsteuer|mehrwertsteuer|vat\b|tax\b|steuer)/i;
+  const taxLines = rawLines.map((l, i) => ({ l, i })).filter(x => TAX.test(x.l) || /\b(19|7)\s?[,.]?\d?\s?%/.test(x.l));
+  const bru = out.brutto;
+  const cands = [];   // { mwst, satz, quelle, prio }
+  for (const { l } of taxLines) {
+    const am = amountsIn(l).map(a => a.v).filter(v => v >= 0);
+    const satz = pct(l);
+    // Tabellenzeile: Netto MwSt Brutto (oder Brutto Netto MwSt) – Tripel suchen, das aufgeht
+    if (am.length >= 3) {
+      for (let a = 0; a < am.length; a++) for (let b = 0; b < am.length; b++) for (let c = 0; c < am.length; c++) {
+        if (a === b || b === c || a === c) continue;
+        if (Math.abs(am[a] + am[b] - am[c]) <= 0.02 && am[b] < am[a]) cands.push({ mwst:am[b], satz, prio:3 + (bru != null && Math.abs(am[c] - bru) <= 0.02 ? 2 : 0) });
+      }
+    }
+    if (am.length === 2 && bru != null) {                        // z. B. „19% MwSt  36,88  7,01“ oder „Netto 36,88 MwSt 7,01“
+      for (const v of am) if (v < bru && Math.abs(bru - v - (am[0] === v ? am[1] : am[0])) <= 0.02) cands.push({ mwst:v, satz, prio:3 });
+    }
+    if (am.length >= 1 && TAX.test(l) && !/netto/i.test(l)) {   // „inkl. 19 % MwSt 7,01“
+      const v = am[am.length - 1];
+      if (bru == null || v < bru) cands.push({ mwst:v, satz, prio:2 });
+    }
+  }
+  // Plausibilität gegen Brutto/Satz prüfen
+  const plausible = (c) => {
+    if (bru == null) return true;
+    if (c.mwst >= bru) return false;
+    if (c.prio >= 3) return true;                 // Tripel Netto+MwSt=Brutto ist in sich schlüssig (auch bei gemischten Sätzen)
+    const ratio = c.mwst / bru;
+    if (c.satz) { const exp = bru - bru / (1 + c.satz / 100); return Math.abs(exp - c.mwst) <= Math.max(0.05, bru * 0.005) ? true : ratio > 0.03 && ratio < 0.2; }
+    return ratio > 0.03 && ratio < 0.2;
+  };
+  const ok = cands.filter(plausible).sort((a, b) => b.prio - a.prio);
+  if (ok.length) {
+    // Mehrere Steuersätze (19 % + 7 %): unterschiedliche Tripel mit verschiedenen Sätzen addieren
+    const bySatz = new Map(); for (const c of ok) if (c.prio >= 3 && c.satz && !bySatz.has(c.satz)) bySatz.set(c.satz, c.mwst);
+    if (bySatz.size > 1) { out.mwst = [...bySatz.values()].reduce((s, v) => s + v, 0); out.mwst_satz = null; hints.push('Mehrere Steuersätze – MwSt summiert.'); }
+    else { out.mwst = ok[0].mwst; out.mwst_satz = ok[0].satz || null; }
+    out.mwst = Math.round(out.mwst * 100) / 100;
+  } else if (bru != null) {
+    const satzLine = rawLines.find(l => /\b(19|7)\s?[,.]?\d?\s?%/.test(l));
+    const satz = satzLine ? pct(satzLine) : null;
+    if (satz === 19 || satz === 7) { out.mwst = Math.round((bru - bru / (1 + satz / 100)) * 100) / 100; out.mwst_satz = satz; hints.push(`MwSt aus ${satz} % berechnet (nicht ausgewiesen).`); }
+    else hints.push('MwSt nicht ausgewiesen – ggf. eintragen.');
+  }
+
+  // --- Händler ---
+  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
+  const head = rawLines.slice(0, 8).join(' ');
+  const all = rawLines.join(' ');
+  let h = '';
+  for (const k of knownHaendler) if (k.length >= 3 && norm(head).includes(norm(k))) { h = k; break; }
+  if (!h) for (const k of knownHaendler) if (k.length >= 4 && norm(all).includes(norm(k))) { h = k; break; }
+  if (!h) for (const k of HAENDLER) if (norm(head).includes(norm(k))) { h = k; break; }
+  if (!h) for (const k of HAENDLER) if (k.length >= 4 && norm(all).includes(norm(k))) { h = k; break; }
+  if (!h) {
+    const bad = /(rechnung|kassenbon|kassenzettel|quittung|beleg|kunde|datum|tel|fax|www|http|@|str\.|straße|strasse|platz|\d{5}\s|ust|steuer|iban|bic|seite|nr\.|kasse|bon|filiale|markt\b|vielen dank|danke|willkommen)/i;
+    for (const l of rawLines.slice(0, 6)) {
+      const letters = (l.match(/[A-Za-zÄÖÜäöüß]/g) || []).length;
+      if (letters >= 3 && letters >= l.length * 0.5 && !bad.test(l) && !amountsIn(l).length) { h = l.replace(/[^A-Za-zÄÖÜäöüß0-9&+.\- ]/g, '').trim(); break; }
+    }
+    if (h) h = h.replace(/\b(gmbh|ag|kg|ohg|e\.?k\.?|&\s?co\.?)\b.*$/i, '').trim().slice(0, 40);
+  }
+  if (h) out.haendler = h; else hints.push('Händler nicht erkannt.');
+
+  // --- Belegnummer ---
+  const bn = rawLines.map(l => /(rechnungs?[- ]?nr\.?|rechnungsnummer|beleg[- ]?nr\.?|belegnummer|bon[- ]?nr\.?|invoice\s?no\.?)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/.]{2,})/i.exec(l)).find(Boolean);
+  if (bn) out.belegnummer = bn[2];
+
+  // --- Sicherheit ---
+  const strong = best && best.score >= 5;
+  if (out.brutto != null && out.datum && strong) out.zuversicht = 'hoch';
+  else if (out.brutto != null && (out.datum || strong)) out.zuversicht = 'mittel';
+  out.hinweis = hints.join(' ');
+  return out;
+}
 
 // ---------- Upload eines Belegs ----------
 const Upload = {
@@ -1065,13 +1201,16 @@ const UI = {
     // Einstellungen
     $('sDbxKey').onchange = () => { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); };
     $('sDbxBase').onchange = () => { DB.settings.dbxBase = $('sDbxBase').value.trim() || '/MietAkte'; DB.saveSettings(); this.renderSettings(); };
-    $('sAntKey').onchange = () => { DB.settings.anthropicKey = $('sAntKey').value.trim(); DB.saveSettings(); };
-    $('sModel').onchange = () => { DB.settings.model = $('sModel').value; DB.saveSettings(); };
+    $('sOcrLang').onchange = () => { DB.settings.ocrLang = $('sOcrLang').value; DB.saveSettings(); this.renderSettings(); };
     $('sAuto').onchange = () => { DB.settings.autoErkennen = $('sAuto').value === '1'; DB.saveSettings(); };
-    $('btnToggleKey').onclick = () => { const i = $('sAntKey'); i.type = i.type === 'password' ? 'text' : 'password'; };
+    $('btnOcrPreload').onclick = async () => {
+      $('btnOcrPreload').disabled = true;
+      try { await OCR.load(p => { $('ocrState').innerHTML = '<span class="spinner"></span> ' + esc(p); }); toast('Erkennungsmodul bereit.', 'ok'); }
+      catch(e){ toast('Laden fehlgeschlagen: ' + e.message, 'err', 8000); }
+      finally { $('btnOcrPreload').disabled = false; this.renderSettings(); }
+    };
     $('btnDbxConnect').onclick = async () => { try { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); await Dropbox.connect(); } catch(e){ toast(e.message, 'err', 7000); } };
     $('btnDbxDisconnect').onclick = () => { Dropbox.disconnect(); this.renderSettings(); this.renderStatus(); toast('Dropbox getrennt.'); };
-    $('btnAntTest').onclick = async () => { const t = toast('Teste Verbindung …', '', 0); try { const m = await Vision.test(); t.remove(); toast('Anthropic-API erreichbar (' + m + ').', 'ok'); } catch(e){ t.remove(); toast('Test fehlgeschlagen: ' + e.message, 'err', 8000); } };
     $('btnSyncNow').onclick = async () => { if (!Dropbox.connected) { toast('Dropbox ist nicht verbunden.', 'warn'); return; } const c = await Sync.pull(); if (!c) { await Sync.push(); if (!Sync.lastError) toast('Abgleich abgeschlossen – keine Änderungen.', 'ok'); } this.renderSettings(); };
     $('btnBackup').onclick = () => {
       const blob = new Blob([JSON.stringify(DB.data, null, 1)], { type:'application/json' });
@@ -1188,7 +1327,8 @@ const UI = {
   },
   renderSettings(){
     const s = DB.settings;
-    $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sAntKey').value = s.anthropicKey; $('sModel').value = s.model; $('sAuto').value = s.autoErkennen ? '1' : '0';
+    $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sOcrLang').value = s.ocrLang || 'deu'; $('sAuto').value = s.autoErkennen ? '1' : '0';
+    if (!OCR.loading) $('ocrState').innerHTML = OCR.ready() ? '<span class="statusdot on"></span> Erkennungsmodul geladen (' + esc(OCR.lang) + ').' : (typeof Tesseract === 'undefined' ? '<span class="statusdot err"></span> Erkennungsmodul nicht verfügbar (Internetverbindung für den ersten Start nötig).' : '<span class="statusdot"></span> Erkennungsmodul wird beim ersten Beleg geladen.');
     $('redirectUri').textContent = Dropbox.redirectUri();
     const a = Dropbox.auth;
     $('dbxAcct').innerHTML = Dropbox.connected ? `<span class="statusdot on"></span> Verbunden${a.account ? ' als <b>' + esc(a.account) + '</b>' : ''}${a.email ? ' (' + esc(a.email) + ')' : ''}` : '<span class="statusdot"></span> Nicht verbunden.';
@@ -1204,16 +1344,18 @@ const UI = {
       if (this.current && this.current.previewUrl) URL.revokeObjectURL(this.current.previewUrl);
       this.current = await prepareFile(file);
       const pv = $('preview'); pv.classList.add('show');
-      if (this.current.isPdf) { $('previewImg').style.display = 'none'; $('previewPdf').style.display = 'flex'; $('previewPdf').innerHTML = `📄 ${esc(file.name)} (${(file.size / 1024).toFixed(0)} KB)`; }
-      else { $('previewPdf').style.display = 'none'; $('previewImg').style.display = ''; $('previewImg').src = this.current.previewUrl; }
+      $('previewPdf').style.display = this.current.isPdf ? 'flex' : 'none';
+      if (this.current.isPdf) $('previewPdf').innerHTML = `📄 ${esc(file.name)} (${(file.size / 1024).toFixed(0)} KB) – Seite 1`;
+      $('previewImg').style.display = ''; $('previewImg').src = this.current.previewUrl;
       if (!$('eDatum').value) $('eDatum').value = '';
-      if (DB.settings.autoErkennen && DB.settings.anthropicKey) await this.recognize();
-      else if (!DB.settings.anthropicKey) { note.className = 'ai-note warn show'; note.textContent = 'Kein Anthropic-API-Key hinterlegt – Werte bitte manuell eintragen (Einstellungen → Betragserkennung).'; }
+      $('ocrDetails').style.display = 'none'; $('ocrText').textContent = '';
+      if (DB.settings.autoErkennen) await this.recognize();
+      else { note.className = 'ai-note show'; note.textContent = 'Automatische Erkennung ist ausgeschaltet – über ↻ starten oder Werte manuell eintragen.'; }
     } catch(e){ toast(e.message, 'err', 7000); this.clearFile(); }
   },
   clearFile(){
     if (this.current && this.current.previewUrl) URL.revokeObjectURL(this.current.previewUrl);
-    this.current = null; $('preview').classList.remove('show', 'busy'); $('previewImg').src = ''; $('aiNote').className = 'ai-note';
+    this.current = null; $('preview').classList.remove('show', 'busy'); $('previewImg').src = ''; $('aiNote').className = 'ai-note'; $('ocrDetails').style.display = 'none';
   },
   async recognize(){
     if (!this.current) { toast('Bitte zuerst ein Foto aufnehmen.', 'warn'); return; }
@@ -1221,19 +1363,22 @@ const UI = {
     pv.classList.add('busy'); $('btnReRecognize').disabled = true; $('btnSave').disabled = true;
     note.className = 'ai-note show'; note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Beleg wird ausgewertet …';
     try {
-      const r = await Vision.erkennen(this.current);
+      const r = await OCR.erkennen(this.current, p => { note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>' + esc(p) + ' …'; });
       const set = (id, v) => { const el = $(id); if (v != null && v !== '') { el.value = v; el.classList.add('erkannt'); } };
       set('eHaendler', r.haendler);
       set('eDatum', parseDatum(r.datum));
       set('eBrutto', r.brutto != null ? num2(r.brutto) : '');
       set('eMwst', r.mwst != null ? num2(r.mwst) : '');
-      if (r.kategorie_vorschlag && !$('eKategorie').dataset.touched) set('eKategorie', r.kategorie_vorschlag);
       if (r.belegnummer && !$('eBemerkung').value) $('eBemerkung').value = 'Beleg-Nr. ' + r.belegnummer;
+      $('ocrText').textContent = (r.text || '').trim() || '(kein Text erkannt)';
+      $('ocrDetails').style.display = '';
       const parts = [];
-      parts.push(`Erkannt (${r.zuversicht || '?'}e Sicherheit${r.mwst_satz ? ', ' + r.mwst_satz + ' % MwSt' : ''}${r.waehrung && r.waehrung !== 'EUR' ? ', Währung ' + r.waehrung + '!' : ''}).`);
+      const conf = r.confidence != null ? ', Textqualität ' + Math.round(r.confidence) + ' %' : '';
+      parts.push(`Erkannt (${({ hoch:'hohe', mittel:'mittlere', niedrig:'geringe' })[r.zuversicht] || 'unbekannte'} Sicherheit${r.mwst_satz ? ', ' + r.mwst_satz + ' % MwSt' : ''}${conf}).`);
       if (r.hinweis) parts.push(r.hinweis);
-      if (r.brutto == null) parts.push('Betrag nicht erkannt – bitte eintragen.');
-      note.className = 'ai-note show' + ((r.zuversicht === 'niedrig' || r.brutto == null || (r.waehrung && r.waehrung !== 'EUR')) ? ' warn' : '');
+      if (r.brutto == null) parts.push('Betrag bitte eintragen.');
+      if (!r.text || !r.text.trim()) parts.push('Kein Text lesbar – Beleg gerade, hell und scharf fotografieren.');
+      note.className = 'ai-note show' + ((r.zuversicht === 'niedrig' || r.brutto == null) ? ' warn' : '');
       note.textContent = parts.join(' ');
     } catch(e){
       note.className = 'ai-note err show'; note.textContent = 'Erkennung fehlgeschlagen: ' + e.message + ' Werte bitte manuell eintragen.';

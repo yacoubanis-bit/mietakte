@@ -1,17 +1,20 @@
 # MietAkte — Belegverwaltung für vermietete Wohnungen (SYNIUM)
 
 Web-App zum Erfassen von Renovierungs- und Instandhaltungsbelegen: Beleg fotografieren,
-Betrag/MwSt/Datum/Händler per Vision-Modell (Anthropic API) erkennen lassen, prüfen,
-einer Wohnung zuordnen und in Dropbox ablegen. Übersicht mit Filtern, Summen je Wohnung
+Betrag/MwSt/Datum/Händler **lokal auf dem Gerät** per Texterkennung (Tesseract-OCR als
+WebAssembly) auslesen, prüfen, einer Wohnung zuordnen und in Dropbox ablegen. Es wird
+**kein KI-Dienst** angebunden – Belege verlassen das Gerät nur Richtung eigene Dropbox. Übersicht mit Filtern, Summen je Wohnung
 und Excel-Export fürs Finanzamt.
 
 > **Dateien:** `index.html` (die App) + Ordner `Logo/` (muss neben `index.html` liegen).
-> Einzeldatei-App ohne Build. Die Excel-Bibliothek (SheetJS) wird beim Export von cdnjs geladen.
+> Einzeldatei-App ohne Build. Von cdnjs/jsdelivr werden nachgeladen: SheetJS (Excel-Export),
+> Tesseract.js samt Sprachdaten (Texterkennung, einmalig ca. 15 MB, danach im Browser
+> zwischengespeichert) und pdf.js (nur bei PDF-Belegen).
 
 ## Erste Einrichtung
 
-Die App braucht zwei Zugänge, die unter **Einstellungen** eingetragen werden und nur im
-Browser (localStorage) gespeichert bleiben:
+Die App braucht nur den Dropbox-Zugang, der unter **Einstellungen** eingetragen wird und nur
+im Browser (localStorage) gespeichert bleibt:
 
 ### 1. Dropbox App-Key
 1. <https://www.dropbox.com/developers/apps> → **Create app** → *Scoped access* →
@@ -27,16 +30,18 @@ Browser (localStorage) gespeichert bleiben:
    Die Anmeldung läuft per OAuth 2 mit PKCE (kein App-Secret nötig) und bleibt über
    ein Refresh-Token dauerhaft bestehen.
 
-### 2. Anthropic API-Key
-Unter <https://console.anthropic.com> einen API-Key erzeugen und in der App eintragen.
-Standardmodell ist Claude Opus 5; Sonnet 5 / Haiku 4.5 sind als günstigere Varianten wählbar.
-**Verbindung testen** prüft den Schlüssel.
+### 2. Texterkennung
+Keine Einrichtung nötig. Unter Einstellungen kann die Sprache (Deutsch bzw. Deutsch + Englisch)
+gewählt und das Erkennungsmodul vorab geladen werden, damit der erste Beleg schneller geht.
 
 ## Bedienung
 - **Wohnungen**: Mietobjekte anlegen (Name, Adresse, Dropbox-Ordnername). Ordner werden
   unterhalb des Basisordners (Standard `/MietAkte`) angelegt.
-- **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Werte werden erkannt und
-  blau markiert → prüfen/korrigieren → Wohnung und Kategorie wählen → **Speichern & hochladen**.
+- **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Text wird auf dem Gerät erkannt,
+  daraus werden Summe, MwSt, Datum, Händler und Belegnummer regelbasiert ermittelt und blau
+  markiert → prüfen/korrigieren → Wohnung und Kategorie wählen → **Speichern & hochladen**.
+  „Erkannten Text anzeigen" zeigt den Rohtext zum Gegenprüfen. Tipp: Beleg gerade, hell und
+  scharf fotografieren; bereits erfasste Händlernamen werden beim nächsten Mal wiedererkannt.
   Das Bild wird auf max. 1800 px verkleinert und als
   `JJJJ-MM-TT_Händler_Betrag,xxEUR.jpg` im Wohnungsordner abgelegt.
 - **Belege**: Liste mit Filter (Wohnung, Kategorie, Zeitraum/Jahr, Suche), Summen je Wohnung,
@@ -52,8 +57,7 @@ Standardmodell ist Claude Opus 5; Sonnet 5 / Haiku 4.5 sind als günstigere Vari
   Geräten mit derselben Dropbox.
 - **Sicherung (JSON)** / **Wiederherstellen** unter Einstellungen.
 - Die Speicherschlüssel sind nach Benutzer-ID gekapselt (`Session.userId`), damit später
-  ein Login für weitere Nutzer ergänzt werden kann. Für Mehrbenutzerbetrieb sollte der
-  Anthropic-Aufruf dann über einen kleinen Server laufen, damit der API-Key nicht im Browser liegt.
+  ein Login für weitere Nutzer ergänzt werden kann.
 
 ## Hosting fürs Handy
 Kamera-Zugriff und Dropbox-Anmeldung setzen `https://` voraus. Beispiel GitHub Pages:
