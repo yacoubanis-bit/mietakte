@@ -56,6 +56,12 @@
   header .brand{display:flex; flex-direction:column; align-items:flex-end; gap:5px; min-width:0}
   header .status{display:flex; align-items:center; gap:7px; padding-right:2px}
   header .pill{padding:3px 10px; font-size:10.5px}
+  .pill.erk{display:inline-flex; align-items:center; gap:5px}
+  .pill.erk::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--faint)}
+  .pill.erk.gpt{color:#bfefff; border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.1)}
+  .pill.erk.gpt::before{background:var(--accent2); box-shadow:0 0 6px var(--accent2)}
+  .pill.erk.lokal{color:#fde68a; border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.1)}
+  .pill.erk.lokal::before{background:var(--amber)}
   header .title{display:flex; align-items:center; gap:11px; min-width:0}
   header h1{
     margin:0; font-size:26px; font-weight:800; letter-spacing:.8px; text-align:right; line-height:1;
@@ -81,7 +87,7 @@
     font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);
     border-radius:999px;padding:5px 11px;white-space:nowrap; font-weight:600; letter-spacing:.3px;
   }
-  @media (max-width:480px){ header{gap:10px; padding-left:12px; padding-right:12px} header .logo{height:42px} header h1{font-size:21px} .appicon{width:32px; height:32px} header .pill{font-size:10px; padding:2px 8px} }
+  @media (max-width:480px){ header{gap:10px; padding-left:12px; padding-right:12px} header .logo{height:42px} header h1{font-size:21px} .appicon{width:32px; height:32px} header .pill{font-size:10px; padding:2px 8px} header .status{flex-wrap:wrap; justify-content:flex-end; row-gap:4px} }
 
   /* ===== Desktop: ab 1100 px linke Navigationsleiste, mehrspaltige Ansichten ===== */
   @media (min-width:1100px){
@@ -380,7 +386,7 @@
     </span>
     <h1>MietAkte</h1>
   </div>
-  <div class="status"><span class="statusdot" id="dot"></span><span class="pill" id="syncPill">Offline</span></div>
+  <div class="status"><span class="pill erk" id="erkPill" title="Belegerkennung – Modus in den Einstellungen wählbar">Erkennung: –</span><span class="statusdot" id="dot"></span><span class="pill" id="syncPill">Offline</span></div>
   </div>
 </header>
 
@@ -418,7 +424,7 @@
   <!-- ===== Erfassen ===== -->
   <section class="view" id="view-erfassen">
     <div class="card">
-      <h2>Beleg fotografieren oder hochladen</h2>
+      <h2 style="display:flex; align-items:center; justify-content:space-between; gap:10px"><span>Beleg fotografieren oder hochladen</span><span class="pill erk" id="erkPill2" style="text-transform:none; letter-spacing:.3px; -webkit-text-fill-color:initial">Erkennung: –</span></h2>
       <div class="capture">
         <button id="btnCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Foto aufnehmen</span></button>
         <button id="btnFile"><svg viewBox="0 0 24 24"><path d="M4 20h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-8l-2-2H4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1z"/><path d="M12 11v6M9 14h6"/></svg><span>Datei wählen</span></button>
@@ -1433,8 +1439,8 @@ const UI = {
     $('sDbxKey').onchange = () => { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); };
     $('sDbxBase').onchange = () => { DB.settings.dbxBase = $('sDbxBase').value.trim() || '/MietAkte'; DB.saveSettings(); this.renderSettings(); };
     $('sOcrLang').onchange = () => { DB.settings.ocrLang = $('sOcrLang').value; DB.saveSettings(); this.renderSettings(); };
-    $('sErkennung').onchange = () => { DB.settings.erkennung = $('sErkennung').value; DB.saveSettings(); };
-    $('sGptKey').onchange = () => { DB.settings.gptKey = $('sGptKey').value.trim(); DB.saveSettings(); };
+    $('sErkennung').onchange = () => { DB.settings.erkennung = $('sErkennung').value; DB.saveSettings(); this.renderStatus(); };
+    $('sGptKey').onchange = () => { DB.settings.gptKey = $('sGptKey').value.trim(); DB.saveSettings(); this.renderStatus(); };
     $('sGptModel').onchange = () => { DB.settings.gptModel = $('sGptModel').value.trim() || 'gpt-5.6'; DB.saveSettings(); this.renderSettings(); };
     $('btnGptKeyToggle').onclick = () => { const i = $('sGptKey'); i.type = i.type === 'password' ? 'text' : 'password'; };
     $('btnGptTest').onclick = async () => {
@@ -1498,7 +1504,16 @@ const UI = {
     if (view === 'erfassen') this.fillSelects();
   },
   renderAll(){ this.fillSelects(); this.renderBelege(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
+  erkennungsModus(){ // { cls, text } für die Anzeige
+    const m = DB.settings.erkennung || 'auto', key = !!(DB.settings.gptKey || '').trim(), on = navigator.onLine;
+    if (m === 'lokal') return { cls:'lokal', text:'Erkennung: lokal' };
+    if (!key) return { cls:'lokal', text:'Erkennung: lokal (kein OpenAI-Key)' };
+    if (!on) return { cls:'lokal', text:'Erkennung: lokal (offline)' };
+    return { cls:'gpt', text: m === 'chatgpt' ? 'Erkennung: ChatGPT' : 'Erkennung: ChatGPT (Rückfall lokal)' };
+  },
   renderStatus(){
+    const em = this.erkennungsModus();
+    for (const id of ['erkPill', 'erkPill2']) { const e = $(id); e.className = 'pill erk ' + em.cls; e.textContent = em.text; }
     const dot = $('dot'), pill = $('syncPill');
     const pending = DB.data.belege.filter(b => b.status !== 'ok').length;
     if (!navigator.onLine) { dot.className = 'statusdot err'; pill.textContent = 'Offline'; }
