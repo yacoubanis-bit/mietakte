@@ -423,7 +423,7 @@
     </span>
     <h1>MietAkte</h1>
   </div>
-  <div class="status"><span class="pill erk" id="erkPill" title="Belegerkennung – Modus in den Einstellungen wählbar">Erkennung: –</span><span class="pill sync" id="syncPill"><span class="statusdot" id="dot"></span><span id="syncText">Offline</span></span></div>
+  <div class="status"><span class="pill sync" id="syncPill"><span class="statusdot" id="dot"></span><span id="syncText">Offline</span></span></div>
   </div>
 </header>
 
@@ -1592,7 +1592,7 @@ const UI = {
   },
   renderStatus(){
     const em = this.erkennungsModus();
-    for (const id of ['erkPill', 'erkPill2']) { const e = $(id); e.className = 'pill erk ' + em.cls; e.textContent = em.text; e.title = em.title; }
+    { const e = $('erkPill2'); e.className = 'pill erk ' + em.cls; e.textContent = em.text; e.title = em.title; }
     const dot = $('dot'), pill = $('syncText');
     const pending = DB.data.belege.filter(b => b.status !== 'ok').length;
     if (!navigator.onLine) { dot.className = 'statusdot err'; pill.textContent = 'Offline'; }
