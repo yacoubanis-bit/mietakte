@@ -284,8 +284,9 @@
   .ycard .ykat{display:flex; flex-wrap:wrap; gap:6px; padding:6px 14px 10px}
   .ycard .ykat .chip b{font-family:var(--mono); margin-left:4px; color:var(--fg)}
   .ywrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
-  table.ytable{width:100%; border-collapse:collapse; font-size:12px; min-width:300px}
-  @media (max-width:480px){ table.ytable{font-size:11.5px} table.ytable td.h{max-width:104px} table.ytable th,table.ytable td{padding-left:6px; padding-right:6px} table.ytable th:first-child,table.ytable td:first-child{padding-left:12px} table.ytable th:last-child,table.ytable td:last-child{padding-right:12px} }
+  table.ytable{width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed}
+  table.ytable col.c-d{width:58px} table.ytable col.c-k{width:92px} table.ytable col.c-b{width:88px} table.ytable col.c-m{width:78px}
+  @media (max-width:480px){ table.ytable{font-size:11px} table.ytable th{font-size:9px; letter-spacing:.3px} table.ytable th,table.ytable td{padding-left:5px; padding-right:5px} table.ytable th:first-child,table.ytable td:first-child{padding-left:10px} table.ytable th:last-child,table.ytable td:last-child{padding-right:10px} table.ytable col.c-d{width:46px} table.ytable col.c-k{width:74px} table.ytable col.c-b{width:74px} table.ytable col.c-m{width:64px} table.ytable td.k .chip{padding:2px 5px; font-size:9px} }
   table.ytable th{font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--faint); font-weight:700; text-align:left; padding:6px 8px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:rgba(255,255,255,.025); white-space:nowrap}
   table.ytable td{padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle}
   table.ytable tr.r{cursor:pointer}
@@ -295,7 +296,7 @@
   table.ytable .num{text-align:right; font-family:var(--mono); white-space:nowrap}
   table.ytable td.num{font-weight:700}
   table.ytable td.d{font-family:var(--mono); color:var(--muted); white-space:nowrap}
-  table.ytable td.h{max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600}
+  table.ytable td.h{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600}
   table.ytable td.h small{display:block; font-weight:400; color:var(--faint); font-size:10.5px; overflow:hidden; text-overflow:ellipsis}
   table.ytable td.k .chip{font-size:9.5px; padding:2px 7px}
   table.ytable tfoot td{border-top:1px solid var(--border2); border-bottom:none; background:rgba(99,102,241,.08); font-weight:800}
@@ -1743,6 +1744,7 @@ const UI = {
         <div class="ysum"><div>Brutto<b>${euro(brutto)}</b></div><div>MwSt<b>${euro(mwst)}</b></div><div>Netto<b>${euro(r2(brutto - mwst))}</b></div></div>
         <div class="ykat">${kats}</div>
         <div class="ywrap"><table class="ytable">
+          <colgroup><col class="c-d"><col><col class="c-k"><col class="c-b"><col class="c-m"></colgroup>
           <thead><tr><th>Datum</th><th>Händler</th><th>Kategorie</th><th class="num">Brutto</th><th class="num">MwSt</th></tr></thead>
           <tbody>${rows}</tbody>
           <tfoot><tr><td colspan="3">Summe ${esc(y)}</td><td class="num">${euro(brutto)}</td><td class="num">${euro(mwst)}</td></tr></tfoot>
