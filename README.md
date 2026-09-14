@@ -116,11 +116,13 @@ Das eigene, private SYNIUM-Repo kann dafür nicht dienen (GitHub Pages ist im Fr
 die App-Dateien enthält (`index.html`, `Logo/`, `icons/`, `manifest.webmanifest`, `README.md`) –
 keine Schlüssel, keine Belege, keine Nutzerdaten.
 
-### Einrichtung (einmalig, Betreiber)
-1. Auf GitHub ein **öffentliches** Repo `mietakte` anlegen (leer, ohne README).
-2. Inhalt des Ordners `MietAkte/` als Wurzel in dieses Repo pushen (Branch `main`).
-3. Repo → **Settings → Pages** → *Deploy from a branch* → `main` / `/ (root)` → Save.
-   Nach 1–2 Minuten ist die App erreichbar unter `https://<user>.github.io/mietakte/`.
+### Veröffentlichung (eingerichtet am 15.09.2026)
+Die App ist unter **<https://yacoubanis-bit.github.io/mietakte/>** erreichbar (GitHub Pages aus dem
+öffentlichen Repo `yacoubanis-bit/mietakte`, das nur die App-Dateien enthält). Aktualisieren nach
+Änderungen im SYNIUM-Repo:
+```bash
+git subtree split --prefix=MietAkte -b mietakte-pages && git push -f https://github.com/yacoubanis-bit/mietakte.git mietakte-pages:main
+```
 4. In der **Dropbox App Console** die App auf **Production** stellen, sobald mehr als
    50 Personen sie nutzen sollen (im Status „Development" sind 50 verbundene Dropbox-Konten erlaubt).
 5. Optional: den Dropbox-App-Key fest in `index.html` eintragen
@@ -128,7 +130,7 @@ keine Schlüssel, keine Belege, keine Nutzerdaten.
    Der App-Key ist kein Geheimnis (kein App-Secret nötig, Anmeldung per PKCE).
 
 ### Nutzung (jede Person)
-1. Link `https://<user>.github.io/mietakte/` im Handy-Browser öffnen.
+1. Link <https://yacoubanis-bit.github.io/mietakte/> im Handy-Browser öffnen.
 2. Installieren: **Android/Chrome** → Menü ⋮ → „App installieren" bzw. „Zum Startbildschirm";
    **iPhone/Safari** → Teilen-Symbol → „Zum Home-Bildschirm". Danach startet MietAkte
    als eigene App mit SYNIUM-Symbol.
