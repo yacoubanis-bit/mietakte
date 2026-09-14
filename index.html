@@ -56,7 +56,12 @@
   header .brand{display:flex; flex-direction:column; align-items:flex-end; gap:5px; min-width:0}
   header .status{display:flex; align-items:center; gap:7px; padding-right:2px}
   header .pill{padding:3px 10px; font-size:10.5px}
-  .pill.erk{display:inline-flex; align-items:center; gap:5px}
+  .pill.erk,.pill.sync{display:inline-flex; align-items:center; gap:5px}
+  .pill.sync .statusdot{width:7px; height:7px}
+  .pill.sync .statusdot.on{box-shadow:0 0 6px var(--green)}
+  .pill.sync.on{color:#bbf7d0; border-color:rgba(52,211,153,.4); background:rgba(52,211,153,.1)}
+  .pill.sync.busy{color:#fde68a; border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.1)}
+  .pill.sync.err{color:#fecaca; border-color:rgba(248,113,113,.4); background:rgba(248,113,113,.1)}
   .pill.erk::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--faint)}
   .pill.erk.gpt{color:#bfefff; border-color:rgba(34,211,238,.4); background:rgba(34,211,238,.1)}
   .pill.erk.gpt::before{background:var(--accent2); box-shadow:0 0 6px var(--accent2)}
@@ -87,7 +92,7 @@
     font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);
     border-radius:999px;padding:5px 11px;white-space:nowrap; font-weight:600; letter-spacing:.3px;
   }
-  @media (max-width:480px){ header{gap:8px; padding-left:10px; padding-right:10px} header .logo{height:40px} header h1{font-size:20px} .appicon{width:30px; height:30px} header .brand{gap:4px; max-width:calc(100vw - 150px)} header .pill{font-size:9.5px; padding:2px 7px; letter-spacing:.1px} header .status{gap:5px; flex-wrap:wrap; justify-content:flex-end; row-gap:3px} header .status .statusdot{width:8px; height:8px} }
+  @media (max-width:480px){ header{gap:8px; padding-left:10px; padding-right:10px} header .logo{height:40px} header h1{font-size:20px} .appicon{width:30px; height:30px} header .brand{gap:4px; max-width:calc(100vw - 150px)} header .pill{font-size:9.5px; padding:2px 7px; letter-spacing:.1px} header .status{gap:5px; flex-wrap:wrap; justify-content:flex-end; row-gap:3px} }
 
   /* ===== Desktop: ab 1100 px linke Navigationsleiste, mehrspaltige Ansichten ===== */
   @media (min-width:1100px){
@@ -418,7 +423,7 @@
     </span>
     <h1>MietAkte</h1>
   </div>
-  <div class="status"><span class="pill erk" id="erkPill" title="Belegerkennung – Modus in den Einstellungen wählbar">Erkennung: –</span><span class="statusdot" id="dot"></span><span class="pill" id="syncPill">Offline</span></div>
+  <div class="status"><span class="pill erk" id="erkPill" title="Belegerkennung – Modus in den Einstellungen wählbar">Erkennung: –</span><span class="pill sync" id="syncPill"><span class="statusdot" id="dot"></span><span id="syncText">Offline</span></span></div>
   </div>
 </header>
 
@@ -1588,7 +1593,7 @@ const UI = {
   renderStatus(){
     const em = this.erkennungsModus();
     for (const id of ['erkPill', 'erkPill2']) { const e = $(id); e.className = 'pill erk ' + em.cls; e.textContent = em.text; e.title = em.title; }
-    const dot = $('dot'), pill = $('syncPill');
+    const dot = $('dot'), pill = $('syncText');
     const pending = DB.data.belege.filter(b => b.status !== 'ok').length;
     if (!navigator.onLine) { dot.className = 'statusdot err'; pill.textContent = 'Offline'; }
     else if (!Dropbox.connected) { dot.className = 'statusdot'; pill.textContent = 'Dropbox getrennt'; }
@@ -1596,6 +1601,7 @@ const UI = {
     else if (Sync.lastError) { dot.className = 'statusdot err'; pill.textContent = 'Abgleich-Fehler'; }
     else if (pending) { dot.className = 'statusdot busy'; pill.textContent = pending + ' ausstehend'; }
     else { dot.className = 'statusdot on'; pill.textContent = 'Dropbox verbunden'; }
+    $('syncPill').className = 'pill sync ' + (dot.className.replace('statusdot', '').trim());
     $('btnRetryAll').style.display = pending ? '' : 'none';
   },
   fillSelects(){
