@@ -500,7 +500,7 @@
     <div class="sums" id="sums"></div>
 
     <div class="btnrow" style="margin-top:0">
-      <button id="btnExportXlsx"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13l6 4M15 13l-6 4"/></svg>Excel-Export</button>
+      <button id="btnExportXlsx" title="Erzeugt die Excel-Datei des Steuerjahres (alle Wohnungen, ungefiltert) und legt sie in Dropbox unter Steuer/ ab"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13l6 4M15 13l-6 4"/></svg>Excel Steuerjahr</button>
       <button id="btnRetryAll" style="display:none"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>Ausstehende hochladen</button>
     </div>
 
@@ -564,7 +564,7 @@
       <h2>Mietobjekte</h2>
       <div class="list" id="wohnungList"></div>
       <div class="btnrow"><button class="primary" id="btnNewWohnung"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Wohnung anlegen</button></div>
-      <div class="hint">Pro Wohnung wird ein Dropbox-Ordner unter dem Basisordner (siehe Einstellungen) angelegt. Darin entsteht je Kaufjahr automatisch ein Ordner <code>Steuer JJJJ</code> (aus dem Belegdatum), und dort landen die Belegbilder als <code>JJJJ-MM-TT_Händler_Betrag.jpg</code>.</div>
+      <div class="hint">Pro Wohnung wird ein Dropbox-Ordner unter dem Basisordner (siehe Einstellungen) angelegt. Darin entsteht je Kaufjahr automatisch ein Ordner <code>Steuer JJJJ</code> (aus dem Belegdatum), und dort landen die Belegbilder als <code>JJJJ-MM-TT_Händler_Betrag.jpg</code>. Die Excel-Jahresaufstellungen liegen gesammelt unter <code>Steuer/Steuer_JJJJ.xlsx</code>.</div>
     </div>
   </section>
 
@@ -1417,86 +1417,100 @@ const Upload = {
   },
 };
 
-// ---------- Excel-Export ----------
+// ---------- Excel-Export: je Steuerjahr eine Datei mit allen Belegen aller Wohnungen ----------
 const Export = {
-  sheetFor(w, belege){
+  ordner:'Steuer',                                  // Dropbox: <Basis>/Steuer/Steuer_JJJJ.xlsx
+  fileName(jahr){ return `Steuer_${jahr}.xlsx`; },
+  belegeDesJahres(jahr){
+    return DB.data.belege.filter(b => (b.datum || '').slice(0, 4) === String(jahr))
+      .sort((a, b) => ((DB.wohnung(a.wohnungId) || {}).name || '').localeCompare((DB.wohnung(b.wohnungId) || {}).name || '', 'de') || (a.datum || '').localeCompare(b.datum || ''));
+  },
+  numFmt(ws, cols, rowFrom, rowTo){
+    for (let r = rowFrom; r <= rowTo; r++) for (const k of cols) { const ref = XLSX.utils.encode_col(k) + r; if (ws[ref] && ws[ref].v !== '' && ws[ref].v != null) { ws[ref].t = 'n'; ws[ref].z = '#,##0.00'; } }
+  },
+  jahresBlatt(jahr, belege){
     const rows = [];
-    rows.push([`Aufstellung Renovierungs- und Instandhaltungsaufwand – ${w ? w.name : 'Alle Wohnungen'}`]);
-    rows.push([w && w.adresse ? w.adresse : '']);
-    rows.push([`Erstellt am ${fmtDatum(nowIso().slice(0, 10))} mit ${APP.name} · Zeitraum: ${UI.filterLabel()}`]);
+    rows.push([`Steuerjahr ${jahr} – Renovierungs- und Instandhaltungsaufwand (alle Wohnungen)`]);
+    rows.push([`Erstellt am ${fmtDatum(nowIso().slice(0, 10))} mit ${APP.name} · ${belege.length} Belege`]);
     rows.push([]);
-    const head = ['Nr.', 'Datum', 'Händler / Lieferant', 'Kategorie', 'Bemerkung', 'Netto (€)', 'MwSt (€)', 'Brutto (€)'];
-    if (!w) head.splice(2, 0, 'Wohnung');
+    const head = ['Nr.', 'Wohnung', 'Datum', 'Händler / Lieferant', 'Kategorie', 'Brutto (€)', 'MwSt (€)', 'Bemerkung'];
     rows.push(head);
-    const start = rows.length;
-    belege.forEach((b, i) => {
-      const netto = (b.brutto != null && b.mwst != null) ? Math.round((b.brutto - b.mwst) * 100) / 100 : null;
-      const r = [i + 1, b.datum ? new Date(b.datum + 'T00:00:00') : '', b.haendler, kat(b.kategorie).name, b.bemerkung || '', netto, b.mwst, b.brutto];
-      if (!w) r.splice(2, 0, (DB.wohnung(b.wohnungId) || {}).name || '');
-      rows.push(r);
-    });
-    const end = rows.length;
-    const sumRow = new Array(head.length).fill('');
-    sumRow[0] = 'Summe';
-    const c = head.length;
-    rows.push(sumRow);
+    const start = rows.length + 1;                    // erste Datenzeile (1-basiert)
+    belege.forEach((b, i) => rows.push([i + 1, (DB.wohnung(b.wohnungId) || {}).name || '', b.datum ? new Date(b.datum + 'T00:00:00') : '', b.haendler || '', kat(b.kategorie).name, b.brutto, b.mwst, b.bemerkung || '']));
+    const end = start + belege.length - 1;
+    rows.push(['Summe', '', '', '', '', '', '', '']);
     const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates:true });
-    // Summenformeln
-    const col = (i) => XLSX.utils.encode_col(i);
-    for (let k = c - 3; k < c; k++) {
-      const ref = col(k) + (end + 1);
-      ws[ref] = { t:'n', f: end > start ? `SUM(${col(k)}${start + 1}:${col(k)}${end})` : '0', z:'#,##0.00' };
+    const sumRow = end + 1;
+    for (const k of [5, 6]) { const c = XLSX.utils.encode_col(k); ws[c + sumRow] = { t:'n', f: belege.length ? `SUM(${c}${start}:${c}${end})` : '0', z:'#,##0.00' }; }
+    if (belege.length) this.numFmt(ws, [5, 6], start, end);
+    for (let r = start; r <= end; r++) {
+      const d = 'C' + r; if (ws[d] && ws[d].v) ws[d].z = 'DD.MM.YYYY';
+      const bl = belege[r - start]; if (bl && bl.dropboxLink && ws['D' + r]) ws['D' + r].l = { Target:bl.dropboxLink, Tooltip:'Beleg in Dropbox öffnen' };
     }
-    // Zahlen- und Datumsformate, Links
-    for (let r = start; r < end; r++) {
-      for (let k = c - 3; k < c; k++) { const ref = col(k) + (r + 1); if (ws[ref] && ws[ref].v != null && ws[ref].v !== '') { ws[ref].t = 'n'; ws[ref].z = '#,##0.00'; } }
-      const dref = col(1) + (r + 1); if (ws[dref] && ws[dref].v) ws[dref].z = 'DD.MM.YYYY';
-      const b = belege[r - start];
-      const hcol = w ? 2 : 3;
-      if (b.dropboxLink) { const href = col(hcol) + (r + 1); if (ws[href]) ws[href].l = { Target:b.dropboxLink, Tooltip:'Beleg in Dropbox öffnen' }; }
+    ws['!cols'] = [5, 28, 12, 28, 20, 13, 13, 34].map(wch => ({ wch }));
+    ws['!merges'] = [{ s:{ r:0, c:0 }, e:{ r:0, c:7 } }];
+    ws['!autofilter'] = { ref:`A4:H${Math.max(end, start)}` };
+    return ws;
+  },
+  wohnungsBlatt(belege){
+    const rows = [['Wohnung', 'Anzahl', 'Brutto (€)', 'MwSt (€)', 'Netto (€)']];
+    const ws0 = DB.data.wohnungen.slice().sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    for (const w of ws0) {
+      const l = belege.filter(b => b.wohnungId === w.id); if (!l.length) continue;
+      const br = l.reduce((s, b) => s + (b.brutto || 0), 0), mw = l.reduce((s, b) => s + (b.mwst || 0), 0);
+      rows.push([w.name, l.length, br, mw, br - mw]);
     }
-    ws['!cols'] = (w ? [5, 12, 28, 20, 34, 13, 13, 14] : [5, 12, 26, 28, 20, 34, 13, 13, 14]).map(wch => ({ wch }));
-    ws['!merges'] = [{ s:{ r:0, c:0 }, e:{ r:0, c:c - 1 } }];
+    const br = belege.reduce((s, b) => s + (b.brutto || 0), 0), mw = belege.reduce((s, b) => s + (b.mwst || 0), 0);
+    rows.push(['Gesamt', belege.length, br, mw, br - mw]);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    this.numFmt(ws, [2, 3, 4], 2, rows.length);
+    ws['!cols'] = [{ wch:30 }, { wch:8 }, { wch:13 }, { wch:13 }, { wch:13 }];
     return ws;
   },
   katSheet(belege){
-    const rows = [['Kategorie', 'Anzahl', 'MwSt (€)', 'Brutto (€)']];
+    const rows = [['Kategorie', 'Anzahl', 'Brutto (€)', 'MwSt (€)']];
     for (const k of KATEGORIEN) {
       const l = belege.filter(b => b.kategorie === k.id);
-      rows.push([k.name, l.length, l.reduce((s, b) => s + (b.mwst || 0), 0), l.reduce((s, b) => s + (b.brutto || 0), 0)]);
+      rows.push([k.name, l.length, l.reduce((s, b) => s + (b.brutto || 0), 0), l.reduce((s, b) => s + (b.mwst || 0), 0)]);
     }
-    rows.push(['Gesamt', belege.length, belege.reduce((s, b) => s + (b.mwst || 0), 0), belege.reduce((s, b) => s + (b.brutto || 0), 0)]);
+    rows.push(['Gesamt', belege.length, belege.reduce((s, b) => s + (b.brutto || 0), 0), belege.reduce((s, b) => s + (b.mwst || 0), 0)]);
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    for (let r = 1; r < rows.length; r++) for (const k of [2, 3]) { const ref = XLSX.utils.encode_col(k) + (r + 1); if (ws[ref]) { ws[ref].t = 'n'; ws[ref].z = '#,##0.00'; } }
-    ws['!cols'] = [{ wch:22 }, { wch:8 }, { wch:13 }, { wch:14 }];
+    this.numFmt(ws, [2, 3], 2, rows.length);
+    ws['!cols'] = [{ wch:22 }, { wch:8 }, { wch:13 }, { wch:13 }];
     return ws;
   },
-  run(){
-    if (typeof XLSX === 'undefined') { toast('Excel-Bibliothek nicht geladen (Internetverbindung nötig).', 'err'); return; }
-    const belege = UI.filtered();
-    if (!belege.length) { toast('Keine Belege im aktuellen Filter.', 'warn'); return; }
+  workbook(jahr){
+    const belege = this.belegeDesJahres(jahr);
     const wb = XLSX.utils.book_new();
-    const wf = $('fWohnung').value;
-    const sheetName = (s) => s.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31) || 'Wohnung';
-    if (wf) {
-      const w = DB.wohnung(wf);
-      XLSX.utils.book_append_sheet(wb, this.sheetFor(w, belege), sheetName(w.name));
-      XLSX.utils.book_append_sheet(wb, this.katSheet(belege), 'Nach Kategorie');
-    } else {
-      XLSX.utils.book_append_sheet(wb, this.sheetFor(null, belege), 'Alle Wohnungen');
-      const used = new Set();
-      for (const w of DB.data.wohnungen) {
-        const l = belege.filter(b => b.wohnungId === w.id);
-        if (!l.length) continue;
-        let n = sheetName(w.name); let i = 2; while (used.has(n)) n = sheetName(w.name).slice(0, 28) + ' ' + (i++); used.add(n);
-        XLSX.utils.book_append_sheet(wb, this.sheetFor(w, l), n);
-      }
-      XLSX.utils.book_append_sheet(wb, this.katSheet(belege), 'Nach Kategorie');
-    }
-    const jahr = $('fJahr').value || (belege[0].datum || '').slice(0, 4) || '';
-    const name = `MietAkte_${wf ? slug(DB.wohnung(wf).name) : 'Alle_Wohnungen'}${jahr ? '_' + jahr : ''}.xlsx`;
+    XLSX.utils.book_append_sheet(wb, this.jahresBlatt(jahr, belege), `Steuer ${jahr}`);
+    XLSX.utils.book_append_sheet(wb, this.wohnungsBlatt(belege), 'Je Wohnung');
+    XLSX.utils.book_append_sheet(wb, this.katSheet(belege), 'Nach Kategorie');
+    return { wb, belege };
+  },
+  // Erzeugt die Jahresdatei, lädt sie lokal herunter und legt sie in Dropbox unter <Basis>/Steuer/ ab (überschreibt)
+  async runYear(jahr){
+    if (typeof XLSX === 'undefined') { toast('Excel-Bibliothek nicht geladen (Internetverbindung nötig).', 'err'); return; }
+    if (!/^\d{4}$/.test(String(jahr))) { toast('Kein gültiges Steuerjahr.', 'warn'); return; }
+    const { wb, belege } = this.workbook(jahr);
+    if (!belege.length) { toast(`Keine Belege im Jahr ${jahr}.`, 'warn'); return; }
+    const name = this.fileName(jahr);
     XLSX.writeFile(wb, name);
-    toast('Excel-Datei erstellt: ' + name, 'ok');
+    if (!Dropbox.connected) { toast(`${name} erstellt (${belege.length} Belege). Dropbox nicht verbunden – nur lokal gespeichert.`, 'warn', 6000); return; }
+    const t = toast(`${name} wird in Dropbox abgelegt …`, '', 0);
+    try {
+      const buf = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+      const folder = Dropbox.base() + '/' + this.ordner;
+      await Dropbox.ensureFolder(folder);
+      await Dropbox.upload(folder + '/' + name, new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'overwrite');
+      t.remove(); toast(`${name} in Dropbox abgelegt: ${folder}/${name} (${belege.length} Belege, vorherige Fassung ersetzt).`, 'ok', 7000);
+    } catch(e){ t.remove(); toast('Excel-Datei lokal erstellt, aber Dropbox-Ablage fehlgeschlagen: ' + e.message, 'err', 9000); }
+  },
+  // Aus der Belegansicht: Jahr aus dem Jahresfilter, sonst das jüngste Jahr mit Belegen
+  run(){
+    let jahr = $('fJahr').value;
+    if (!jahr) { const years = [...new Set(DB.data.belege.map(b => (b.datum || '').slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort(); jahr = years[years.length - 1] || ''; }
+    if (!jahr) { toast('Noch keine Belege mit Datum vorhanden.', 'warn'); return; }
+    return this.runYear(jahr);
   },
 };
 
@@ -1753,12 +1767,7 @@ const UI = {
     }).join('');
     el.innerHTML = html;
     el.querySelectorAll('tr.r').forEach(x => x.onclick = () => this.openEdit(x.dataset.id));
-    el.querySelectorAll('[data-xlsx]').forEach(b => b.onclick = () => {
-      const y = b.dataset.xlsx;
-      $('fWohnung').value = wf; $('fKategorie').value = kf; $('fSuche').value = '';
-      if (/^\d{4}$/.test(y)) { $('fJahr').value = y; $('fVon').value = y + '-01-01'; $('fBis').value = y + '-12-31'; } else { $('fJahr').value = ''; $('fVon').value = ''; $('fBis').value = ''; }
-      Export.run();
-    });
+    el.querySelectorAll('[data-xlsx]').forEach(b => b.onclick = () => Export.runYear(b.dataset.xlsx));
   },
   renderWohnungen(){
     const el = $('wohnungList');

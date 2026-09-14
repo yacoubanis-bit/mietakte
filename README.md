@@ -74,6 +74,7 @@ bis zu 2100 px Inhaltsbreite.
   unterhalb des Basisordners (Standard `/MietAkte`) angelegt. Je Kaufjahr entsteht darin
   automatisch ein Unterordner `Steuer JJJJ` (Jahr aus dem Belegdatum), z. B.
   `/MietAkte/Wohnung_Hauptstrasse_12/Steuer 2025/2025-03-04_Bauhaus_43,89EUR.jpg`.
+  Die Excel-Jahresaufstellungen liegen davon getrennt unter `/MietAkte/Steuer/`.
 - **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Beleg wird über ChatGPT bzw.
   lokal ausgewertet, die Werte werden blau markiert → prüfen/korrigieren → Wohnung und
   Kategorie wählen → **Speichern & hochladen**. Der Hinweis unter dem Foto nennt, welche
@@ -86,8 +87,14 @@ bis zu 2100 px Inhaltsbreite.
   Brutto, MwSt) samt Summenzeile; filterbar nach Wohnung und Kategorie, Tipp auf
   eine Zeile öffnet den Beleg, „Excel JJJJ" exportiert das Jahr.
 - **Belege**: Liste mit Filter (Wohnung, Kategorie, Zeitraum/Jahr, Suche), Summen je Wohnung,
-  Bearbeiten/Löschen per Tipp auf einen Beleg. **Excel-Export** erzeugt eine Aufstellung
-  (bei „Alle Wohnungen": ein Blatt je Wohnung + Gesamtblatt + Kategorien-Summen).
+  Bearbeiten/Löschen per Tipp auf einen Beleg.
+- **Excel Steuerjahr**: Erzeugt je Steuerjahr **eine** Datei `Steuer_JJJJ.xlsx` mit **allen** Belegen
+  des Jahres über alle Wohnungen (ungefiltert): Blatt „Steuer JJJJ" mit Nr., Wohnung, Datum,
+  Händler (Link zum Beleg), Kategorie, Brutto, MwSt, Bemerkung und Summenzeile; dazu die Blätter
+  „Je Wohnung" und „Nach Kategorie". Die Datei wird lokal heruntergeladen **und** in Dropbox unter
+  `<Basisordner>/Steuer/Steuer_JJJJ.xlsx` abgelegt – beim erneuten Erstellen wird die Datei des
+  Jahres überschrieben. Aufruf über „Excel JJJJ" in der Übersicht oder „Excel Steuerjahr" in der
+  Belegliste (Jahr aus dem Jahresfilter, sonst das jüngste Jahr mit Belegen).
 - Schlägt ein Upload fehl (offline, Dropbox getrennt), bleibt der Beleg mit dem Bild lokal
   gespeichert (IndexedDB) und kann über **Ausstehende hochladen** nachgeholt werden.
 
