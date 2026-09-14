@@ -117,6 +117,9 @@
     #view-belege .list{grid-area:l}
     #view-belege .filters .row{flex-wrap:wrap}
     #view-erfassen.active{display:grid; grid-template-columns:1fr 1fr; align-items:start}
+    #view-dashboard.active{display:grid; grid-template-columns:1fr 1fr; align-items:start}
+    #view-dashboard .filters{grid-column:1/3}
+    #view-dashboard .empty{grid-column:1/3}
     #view-erfassen .preview img{max-height:62vh}
     #view-einstellungen.active{display:grid; grid-template-columns:1fr 1fr; align-items:start}
     main #view-wohnungen{max-width:1100px; margin:0}
@@ -135,6 +138,8 @@
     main .view{max-width:2100px}
     #view-belege.active{grid-template-columns:minmax(380px,460px) 1fr}
     #view-einstellungen.active{grid-template-columns:1fr 1fr 1fr}
+    #view-dashboard.active{grid-template-columns:1fr 1fr 1fr}
+    #view-dashboard .filters,#view-dashboard .empty{grid-column:1/4}
     main #view-wohnungen{max-width:1300px}
     select,input[type=text],input[type=number],input[type=date],input[type=password],input[type=url],textarea{font-size:14.5px}
     .sum .v{font-size:21px}
@@ -266,6 +271,37 @@
   .beleg .st.ok{color:var(--green)} .beleg .st.warn{color:var(--amber)} .beleg .st.err{color:var(--red)}
   .empty{text-align:center; color:var(--faint); padding:26px 10px; font-size:13px; line-height:1.6}
   .empty svg{width:44px;height:44px; stroke:var(--faint); fill:none; stroke-width:1.5; margin-bottom:8px}
+
+  /* ===== Übersicht (Dashboard) ===== */
+  .ycard{border:1px solid var(--border); border-radius:14px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden}
+  .ycard .yh{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px; background:linear-gradient(135deg,rgba(99,102,241,.16),rgba(34,211,238,.08)); border-bottom:1px solid var(--border)}
+  .ycard .yh .t{font-size:15px; font-weight:800; letter-spacing:.3px}
+  .ycard .yh .t small{font-size:11px; color:var(--muted); font-weight:600; margin-left:6px}
+  .ycard .yh .s{font-family:var(--mono); font-weight:800; font-size:16px; white-space:nowrap}
+  .ycard .ysum{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:10px 14px 4px}
+  .ycard .ysum div{font-size:10.5px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.6px}
+  .ycard .ysum b{display:block; font-family:var(--mono); font-size:13.5px; color:var(--fg); margin-top:2px; letter-spacing:-.2px}
+  .ycard .ykat{display:flex; flex-wrap:wrap; gap:6px; padding:6px 14px 10px}
+  .ycard .ykat .chip b{font-family:var(--mono); margin-left:4px; color:var(--fg)}
+  .ywrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table.ytable{width:100%; border-collapse:collapse; font-size:12px; min-width:300px}
+  @media (max-width:480px){ table.ytable{font-size:11.5px} table.ytable td.h{max-width:104px} table.ytable th,table.ytable td{padding-left:6px; padding-right:6px} table.ytable th:first-child,table.ytable td:first-child{padding-left:12px} table.ytable th:last-child,table.ytable td:last-child{padding-right:12px} }
+  table.ytable th{font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--faint); font-weight:700; text-align:left; padding:6px 8px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:rgba(255,255,255,.025); white-space:nowrap}
+  table.ytable td{padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle}
+  table.ytable tr.r{cursor:pointer}
+  table.ytable tr.r:hover td{background:rgba(255,255,255,.035)}
+  table.ytable th:first-child, table.ytable td:first-child{padding-left:14px}
+  table.ytable th:last-child, table.ytable td:last-child{padding-right:14px}
+  table.ytable .num{text-align:right; font-family:var(--mono); white-space:nowrap}
+  table.ytable td.num{font-weight:700}
+  table.ytable td.d{font-family:var(--mono); color:var(--muted); white-space:nowrap}
+  table.ytable td.h{max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600}
+  table.ytable td.h small{display:block; font-weight:400; color:var(--faint); font-size:10.5px; overflow:hidden; text-overflow:ellipsis}
+  table.ytable td.k .chip{font-size:9.5px; padding:2px 7px}
+  table.ytable tfoot td{border-top:1px solid var(--border2); border-bottom:none; background:rgba(99,102,241,.08); font-weight:800}
+  table.ytable td .st{font-size:10px; margin-left:4px}
+  .ycard .yacts{display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--border)}
+  .ycard .yacts button{flex:1}
 
   /* ===== Wohnungen ===== */
   .wohnung{display:grid; grid-template-columns:1fr auto; gap:3px 10px; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface)}
@@ -428,6 +464,18 @@
 </header>
 
 <main>
+
+  <!-- ===== Übersicht (Dashboard) ===== -->
+  <section class="view" id="view-dashboard">
+    <div class="card filters">
+      <h2>Übersicht nach Steuerjahr</h2>
+      <div class="row">
+        <label class="f"><span class="lab">Wohnung</span><select id="dWohnung"><option value="">Alle Wohnungen</option></select></label>
+        <label class="f narrow" style="min-width:140px"><span class="lab">Kategorie</span><select id="dKategorie"><option value="">Alle Kategorien</option></select></label>
+      </div>
+    </div>
+    <div id="dashYears" style="display:contents"></div>
+  </section>
 
   <!-- ===== Belege ===== -->
   <section class="view" id="view-belege">
@@ -604,6 +652,7 @@
 </main>
 
 <nav class="tabbar">
+  <button data-view="dashboard"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Übersicht</button>
   <button data-view="belege" class="active"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Belege</button>
   <button data-view="erfassen" class="cta"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Erfassen</button>
   <button data-view="wohnungen"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Wohnungen</button>
@@ -708,10 +757,10 @@ const APP = { name:'MietAkte', version:'1.3', dbFile:'mietakte-daten.json' };
 // Voreingestellter Dropbox App-Key für alle Nutzer (aus der Dropbox App Console). Leer = jeder Nutzer trägt ihn selbst ein.
 const DEFAULT_DBX_APP_KEY = '';
 const KATEGORIEN = [
-  { id:'erhaltung',   name:'Erhaltungsaufwand', cls:'k-erhaltung' },
-  { id:'herstellung', name:'Herstellungskosten', cls:'k-herstellung' },
-  { id:'klein',       name:'Kleinmaterial',      cls:'k-klein' },
-  { id:'sonstiges',   name:'Sonstiges',          cls:'k-sonst' },
+  { id:'erhaltung',   name:'Erhaltungsaufwand', kurz:'Erhaltung',   cls:'k-erhaltung' },
+  { id:'herstellung', name:'Herstellungskosten', kurz:'Herstellung', cls:'k-herstellung' },
+  { id:'klein',       name:'Kleinmaterial',      kurz:'Kleinmat.',   cls:'k-klein' },
+  { id:'sonstiges',   name:'Sonstiges',          kurz:'Sonstiges',   cls:'k-sonst' },
 ];
 const Session = { userId:'local' };                       // Platz für späteres Login
 const KEY = (k) => `mietakte.${Session.userId}.${k}`;    // benutzerbezogene Speicherschlüssel
@@ -1465,6 +1514,7 @@ const UI = {
     $('fSuche').oninput = () => this.renderBelege();
     $('btnFilterReset').onclick = () => { for (const id of ['fWohnung', 'fKategorie', 'fVon', 'fBis', 'fJahr', 'fSuche']) $(id).value = ''; this.renderBelege(); };
     $('btnExportXlsx').onclick = () => Export.run();
+    $('dWohnung').onchange = () => this.renderDashboard(); $('dKategorie').onchange = () => this.renderDashboard();
     $('btnRetryAll').onclick = () => Upload.retryAll();
     // Erfassen
     $('btnCam').onclick = () => $('fileCam').click();
@@ -1550,11 +1600,12 @@ const UI = {
     document.querySelectorAll('nav.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     document.querySelector('main').scrollTop = 0;
     if (view === 'belege') this.renderBelege();
+    if (view === 'dashboard') this.renderDashboard();
     if (view === 'wohnungen') this.renderWohnungen();
     if (view === 'einstellungen') this.renderSettings();
     if (view === 'erfassen') this.fillSelects();
   },
-  renderAll(){ this.fillSelects(); this.renderBelege(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
+  renderAll(){ this.fillSelects(); this.renderBelege(); this.renderDashboard(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
   // Hinweisfenster bei ChatGPT-Ausfall. mode 'auto' → automatischer Wechsel, blendet sich nach ms aus (Promise endet dann).
   // mode 'chatgpt' → bleibt stehen; Promise liefert 'auto' | 'lokal' | null (gewählte neue Einstellung).
   showSwitch(mode, fehler, ms = 3200){
@@ -1610,6 +1661,7 @@ const UI = {
     const kOpts = KATEGORIEN.map(k => `<option value="${k.id}">${k.name}</option>`).join('');
     const keep = (id, html) => { const s = $(id); const v = s.value; s.innerHTML = html; if ([...s.options].some(o => o.value === v)) s.value = v; };
     keep('fWohnung', wOpts('Alle Wohnungen')); keep('fKategorie', '<option value="">Alle Kategorien</option>' + kOpts);
+    keep('dWohnung', wOpts('Alle Wohnungen')); keep('dKategorie', '<option value="">Alle Kategorien</option>' + kOpts);
     keep('eWohnung', wOpts(ws.length ? '' : 'Bitte zuerst Wohnung anlegen')); keep('eKategorie', kOpts);
     keep('bWohnung', wOpts('')); keep('bKategorie', kOpts);
     const years = [...new Set(DB.data.belege.map(b => (b.datum || '').slice(0, 4)).filter(Boolean))].sort().reverse();
@@ -1659,6 +1711,53 @@ const UI = {
       el.querySelectorAll('.beleg').forEach(x => x.onclick = () => this.openEdit(x.dataset.id));
     }
     this.renderStatus();
+  },
+  // ----- Übersicht nach Steuerjahr -----
+  renderDashboard(){
+    const wf = $('dWohnung').value, kf = $('dKategorie').value;
+    const alle = !wf;
+    const list = DB.data.belege.filter(b => (!wf || b.wohnungId === wf) && (!kf || b.kategorie === kf));
+    const years = new Map();
+    for (const b of list) { const y = (b.datum || '').slice(0, 4) || 'ohne Jahr'; if (!years.has(y)) years.set(y, []); years.get(y).push(b); }
+    const el = $('dashYears');
+    if (!years.size) { el.innerHTML = '<div class="empty">Noch keine Belege für diese Auswahl.</div>'; return; }
+    const sum = (l, f) => l.reduce((s, b) => s + (b[f] || 0), 0);
+    const r2 = (n) => Math.round(n * 100) / 100;
+    const html = [...years.keys()].sort().reverse().map(y => {
+      const l = years.get(y).slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
+      const brutto = sum(l, 'brutto'), mwst = sum(l, 'mwst');
+      const kats = KATEGORIEN.map(k => { const kl = l.filter(b => b.kategorie === k.id); return kl.length ? `<span class="chip ${k.cls}">${k.kurz} · ${kl.length}<b>${euro(sum(kl, 'brutto'))}</b></span>` : ''; }).join('');
+      const rows = l.map(b => {
+        const w = DB.wohnung(b.wohnungId); const k = kat(b.kategorie);
+        const st = b.status === 'ok' ? '' : `<span class="st ${b.status === 'fehler' ? 'err' : 'warn'}" title="${b.status === 'fehler' ? 'Upload fehlgeschlagen' : 'Upload ausstehend'}">${b.status === 'fehler' ? '⚠' : '⏳'}</span>`;
+        return `<tr class="r" data-id="${b.id}">
+          <td class="d">${esc(fmtDatum(b.datum).slice(0, 6))}</td>
+          <td class="h">${esc(b.haendler || '–')}${st}${alle ? `<small>${esc(w ? w.name : '?')}</small>` : ''}</td>
+          <td class="k"><span class="chip ${k.cls}">${k.kurz}</span></td>
+          <td class="num">${euro(b.brutto)}</td>
+          <td class="num">${b.mwst != null ? euro(b.mwst) : '–'}</td>
+        </tr>`;
+      }).join('');
+      return `<div class="ycard" data-year="${esc(y)}">
+        <div class="yh"><div class="t">Steuer ${esc(y)}<small>${l.length} ${l.length === 1 ? 'Beleg' : 'Belege'}</small></div><div class="s">${euro(brutto)}</div></div>
+        <div class="ysum"><div>Brutto<b>${euro(brutto)}</b></div><div>MwSt<b>${euro(mwst)}</b></div><div>Netto<b>${euro(r2(brutto - mwst))}</b></div></div>
+        <div class="ykat">${kats}</div>
+        <div class="ywrap"><table class="ytable">
+          <thead><tr><th>Datum</th><th>Händler</th><th>Kategorie</th><th class="num">Brutto</th><th class="num">MwSt</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td colspan="3">Summe ${esc(y)}</td><td class="num">${euro(brutto)}</td><td class="num">${euro(mwst)}</td></tr></tfoot>
+        </table></div>
+        <div class="yacts"><button class="small" data-xlsx="${esc(y)}"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13l6 4M15 13l-6 4"/></svg>Excel ${esc(y)}</button></div>
+      </div>`;
+    }).join('');
+    el.innerHTML = html;
+    el.querySelectorAll('tr.r').forEach(x => x.onclick = () => this.openEdit(x.dataset.id));
+    el.querySelectorAll('[data-xlsx]').forEach(b => b.onclick = () => {
+      const y = b.dataset.xlsx;
+      $('fWohnung').value = wf; $('fKategorie').value = kf; $('fSuche').value = '';
+      if (/^\d{4}$/.test(y)) { $('fJahr').value = y; $('fVon').value = y + '-01-01'; $('fBis').value = y + '-12-31'; } else { $('fJahr').value = ''; $('fVon').value = ''; $('fBis').value = ''; }
+      Export.run();
+    });
   },
   renderWohnungen(){
     const el = $('wohnungList');
@@ -1810,7 +1909,7 @@ const UI = {
     const b = DB.beleg(this.editId); if (!b) return;
     const brutto = parseBetrag($('bBrutto').value); if (brutto == null) { toast('Bruttobetrag fehlt.', 'warn'); return; }
     Object.assign(b, { wohnungId:$('bWohnung').value, kategorie:$('bKategorie').value, datum:$('bDatum').value, haendler:$('bHaendler').value.trim(), brutto, mwst:parseBetrag($('bMwst').value), bemerkung:$('bBemerkung').value.trim(), geaendert:nowIso() });
-    DB.save(); $('dlgBeleg').close(); this.renderBelege(); toast('Beleg aktualisiert.', 'ok');
+    DB.save(); $('dlgBeleg').close(); this.renderBelege(); this.renderDashboard(); toast('Beleg aktualisiert.', 'ok');
   },
   async deleteBeleg(){
     const b = DB.beleg(this.editId); if (!b) return;
@@ -1819,7 +1918,7 @@ const UI = {
     DB.data.belege = DB.data.belege.filter(x => x.id !== b.id);
     DB.data.geloescht.push({ id:b.id, at:nowIso() });
     Pending.del(b.id).catch(() => {});
-    DB.save(); this.renderBelege(); toast('Beleg gelöscht.');
+    DB.save(); this.renderBelege(); this.renderDashboard(); toast('Beleg gelöscht.');
   },
 
   // ----- Wohnungen -----
