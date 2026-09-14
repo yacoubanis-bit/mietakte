@@ -285,6 +285,38 @@
   .kv .v{font-family:var(--mono); word-break:break-all}
   .kv a{color:var(--accent2)}
 
+  /* ===== Hinweisfenster: ChatGPT nicht erreichbar → Wechsel auf lokal ===== */
+  #switchNote{position:fixed; inset:0; z-index:300; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(3,5,12,.62); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px)}
+  #switchNote.show{display:flex; animation:swFade .25s ease}
+  #switchNote.hide{animation:swFadeOut .35s ease forwards}
+  #switchNote .box{width:min(92vw,420px); border:1px solid var(--border2); border-radius:18px; background:#0d1222; box-shadow:0 24px 80px rgba(0,0,0,.7); padding:22px 20px 18px; text-align:center; animation:swIn .45s cubic-bezier(.2,.75,.2,1)}
+  #switchNote .anim{display:flex; align-items:center; justify-content:center; gap:14px; margin:4px auto 14px; height:64px}
+  #switchNote .anim svg{width:52px; height:52px; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  #switchNote .cloud{stroke:var(--accent2); animation:swCloud 2.6s ease-in-out infinite}
+  #switchNote .cloud .x{stroke:var(--red); stroke-width:2.4; stroke-dasharray:20; stroke-dashoffset:20; animation:swX 2.6s ease-in-out infinite}
+  #switchNote .arrow{width:34px; height:20px; position:relative; overflow:hidden}
+  #switchNote .arrow i{position:absolute; top:8px; left:0; width:8px; height:4px; border-radius:2px; background:var(--amber); animation:swDot 1.2s linear infinite; box-shadow:0 0 8px var(--amber)}
+  #switchNote .arrow i:nth-child(2){animation-delay:.4s} #switchNote .arrow i:nth-child(3){animation-delay:.8s}
+  #switchNote .phone{stroke:var(--amber); animation:swPhone 2.6s ease-in-out infinite}
+  #switchNote .phone .scr{fill:rgba(251,191,36,.15)}
+  #switchNote .phone .beam{stroke:var(--amber); stroke-width:1.4; animation:swBeam 1.2s ease-in-out infinite}
+  #switchNote h3{margin:0 0 6px; font-size:16px; font-weight:750}
+  #switchNote p{margin:0; font-size:13px; line-height:1.5; color:var(--muted)}
+  #switchNote .err{margin-top:8px; font-size:11.5px; color:var(--faint); font-family:var(--mono); word-break:break-word}
+  #switchNote .acts{display:flex; flex-direction:column; gap:8px; margin-top:16px}
+  #switchNote .bar{height:3px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:16px}
+  #switchNote .bar>i{display:block; height:100%; width:100%; background:linear-gradient(90deg,var(--accent2),var(--amber)); transform-origin:left; animation:swBar var(--sw-ms,3000ms) linear forwards}
+  @keyframes swIn{from{opacity:0; transform:translateY(14px) scale(.94)}to{opacity:1; transform:none}}
+  @keyframes swFade{from{opacity:0}to{opacity:1}}
+  @keyframes swFadeOut{to{opacity:0; visibility:hidden}}
+  @keyframes swCloud{0%,35%{opacity:1; transform:none} 55%,100%{opacity:.35; transform:translateY(-3px) scale(.94)}}
+  @keyframes swX{0%,25%{stroke-dashoffset:20; opacity:0} 45%,100%{stroke-dashoffset:0; opacity:1}}
+  @keyframes swDot{from{left:-10px; opacity:0} 20%{opacity:1} to{left:36px; opacity:0}}
+  @keyframes swPhone{0%,45%{opacity:.4; transform:none} 70%,100%{opacity:1; transform:scale(1.06); filter:drop-shadow(0 0 10px rgba(251,191,36,.55))}}
+  @keyframes swBeam{0%{transform:translateY(0); opacity:0} 30%{opacity:1} 100%{transform:translateY(16px); opacity:0}}
+  @keyframes swBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+  @media (prefers-reduced-motion:reduce){ #switchNote *{animation-duration:.01ms !important; animation-iteration-count:1 !important} }
+
   /* ===== Toast ===== */
   #toasts{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + var(--sab)); z-index:200; display:flex; flex-direction:column; gap:8px; width:min(92vw,440px); pointer-events:none}
   .toast{
@@ -639,6 +671,20 @@
   </form>
 </dialog>
 
+<div id="switchNote" role="alertdialog" aria-live="assertive">
+  <div class="box">
+    <div class="anim">
+      <svg class="cloud" viewBox="0 0 48 48"><path d="M14 34h21a8 8 0 0 0 1-15.9A11 11 0 0 0 15 16a8.5 8.5 0 0 0-1 18z"/><path class="x" d="M19 22l10 10M29 22L19 32"/></svg>
+      <div class="arrow"><i></i><i></i><i></i></div>
+      <svg class="phone" viewBox="0 0 48 48"><rect class="scr" x="14" y="5" width="20" height="38" rx="4"/><path d="M21 9h6M24 38h.01"/><path class="beam" d="M19 18h10M19 23h10M19 28h6"/></svg>
+    </div>
+    <h3 id="swTitle">ChatGPT nicht erreichbar</h3>
+    <p id="swText"></p>
+    <div class="err" id="swErr"></div>
+    <div class="acts" id="swActs"></div>
+    <div class="bar" id="swBar"><i></i></div>
+  </div>
+</div>
 <div id="toasts"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1504,6 +1550,34 @@ const UI = {
     if (view === 'erfassen') this.fillSelects();
   },
   renderAll(){ this.fillSelects(); this.renderBelege(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
+  // Hinweisfenster bei ChatGPT-Ausfall. mode 'auto' → automatischer Wechsel, blendet sich nach ms aus (Promise endet dann).
+  // mode 'chatgpt' → bleibt stehen; Promise liefert 'auto' | 'lokal' | null (gewählte neue Einstellung).
+  showSwitch(mode, fehler, ms = 3200){
+    return new Promise(res => {
+      const el = $('switchNote'), acts = $('swActs'), bar = $('swBar');
+      let done = false;
+      const close = (val) => { if (done) return; done = true; el.classList.add('hide'); setTimeout(() => { el.classList.remove('show', 'hide'); res(val); }, 360); };
+      $('swErr').textContent = fehler || '';
+      acts.innerHTML = '';
+      if (mode === 'auto') {
+        $('swTitle').textContent = 'ChatGPT nicht erreichbar';
+        $('swText').textContent = 'Der Beleg wird jetzt automatisch mit der lokalen Texterkennung auf dem Gerät ausgelesen.';
+        bar.style.display = ''; bar.style.setProperty('--sw-ms', ms + 'ms');
+        bar.innerHTML = '<i></i>';
+        setTimeout(() => close(null), ms);
+      } else {
+        $('swTitle').textContent = 'ChatGPT nicht erreichbar';
+        $('swText').textContent = 'Die Erkennung ist auf „Nur ChatGPT“ eingestellt. Damit Belege weiter gelesen werden können, bitte die Einstellung ändern:';
+        bar.style.display = 'none';
+        const mk = (label, val, primary) => { const b = document.createElement('button'); b.className = primary ? 'primary' : ''; b.textContent = label; b.onclick = () => close(val); acts.appendChild(b); };
+        mk('Auf „ChatGPT, bei Fehler lokal“ umstellen', 'auto', true);
+        mk('Auf „Nur lokal“ umstellen', 'lokal', false);
+        mk('Abbrechen', null, false);
+        acts.lastChild.className = 'ghost';
+      }
+      el.classList.remove('hide'); el.classList.add('show');
+    });
+  },
   erkennungsModus(){ // { cls, text } für die Anzeige
     const m = DB.settings.erkennung || 'auto', key = !!(DB.settings.gptKey || '').trim(), on = navigator.onLine;
     if (m === 'lokal') return { cls:'lokal', text:'Erkennung: lokal', title:'Nur lokale Texterkennung (Einstellungen)' };
@@ -1640,10 +1714,26 @@ const UI = {
       const prog = p => { note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>' + esc(p) + ' …'; };
       const mode = DB.settings.erkennung || 'auto';
       let r = null, gptFehler = '';
-      if (mode !== 'lokal' && DB.settings.gptKey) {
-        try { r = await GPT.erkennen(this.current, prog); }
-        catch(e){ gptFehler = e.message; if (mode === 'chatgpt') throw e; }
-      } else if (mode === 'chatgpt') throw new Error('Kein OpenAI-API-Key hinterlegt (Einstellungen).');
+      if (mode !== 'lokal') {
+        try {
+          if (!DB.settings.gptKey) throw new Error('Kein OpenAI-API-Key hinterlegt (Einstellungen).');
+          r = await GPT.erkennen(this.current, prog);
+        } catch(e){
+          gptFehler = e.message;
+          if (mode === 'chatgpt') {
+            // Nur ChatGPT: Fenster mit Umstell-Angebot; ohne Auswahl bleibt der Fehler stehen
+            const wahl = await this.showSwitch('chatgpt', gptFehler);
+            if (!wahl) throw e;
+            DB.settings.erkennung = wahl; DB.saveSettings(); $('sErkennung').value = wahl; this.renderStatus();
+            toast('Erkennung umgestellt auf „' + (wahl === 'auto' ? 'ChatGPT, bei Fehler lokal' : 'Nur lokal') + '“.', 'ok');
+          } else {
+            // ChatGPT/lokal: Hinweis mit Animation, lokale Erkennung läuft währenddessen schon an
+            const lokal = OCR.erkennen(this.current, prog).then(x => { x.engine = 'lokal'; return x; });
+            await this.showSwitch('auto', gptFehler);
+            r = await lokal;
+          }
+        }
+      }
       if (!r) { r = await OCR.erkennen(this.current, prog); r.engine = 'lokal'; }
       const set = (id, v) => { const el = $(id); if (v != null && v !== '') { el.value = v; el.classList.add('erkannt'); } };
       set('eHaendler', r.haendler);
