@@ -71,7 +71,9 @@ Desktop (ab 1100 px Breite) mit linker Navigationsleiste und mehrspaltigen Ansic
 bis zu 2100 px Inhaltsbreite.
 
 - **Wohnungen**: Mietobjekte anlegen (Name, Adresse, Dropbox-Ordnername). Ordner werden
-  unterhalb des Basisordners (Standard `/MietAkte`) angelegt.
+  unterhalb des Basisordners (Standard `/MietAkte`) angelegt. Je Kaufjahr entsteht darin
+  automatisch ein Unterordner `Steuer JJJJ` (Jahr aus dem Belegdatum), z. B.
+  `/MietAkte/Wohnung_Hauptstrasse_12/Steuer 2025/2025-03-04_Bauhaus_43,89EUR.jpg`.
 - **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Beleg wird über ChatGPT bzw.
   lokal ausgewertet, die Werte werden blau markiert → prüfen/korrigieren → Wohnung und
   Kategorie wählen → **Speichern & hochladen**. Der Hinweis unter dem Foto nennt, welche
