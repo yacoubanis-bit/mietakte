@@ -87,7 +87,7 @@
     font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);
     border-radius:999px;padding:5px 11px;white-space:nowrap; font-weight:600; letter-spacing:.3px;
   }
-  @media (max-width:480px){ header{gap:10px; padding-left:12px; padding-right:12px} header .logo{height:42px} header h1{font-size:21px} .appicon{width:32px; height:32px} header .pill{font-size:10px; padding:2px 8px} header .status{flex-wrap:wrap; justify-content:flex-end; row-gap:4px} }
+  @media (max-width:480px){ header{gap:8px; padding-left:10px; padding-right:10px} header .logo{height:40px} header h1{font-size:20px} .appicon{width:30px; height:30px} header .brand{gap:4px; max-width:calc(100vw - 150px)} header .pill{font-size:9.5px; padding:2px 7px; letter-spacing:.1px} header .status{gap:5px; flex-wrap:wrap; justify-content:flex-end; row-gap:3px} header .status .statusdot{width:8px; height:8px} }
 
   /* ===== Desktop: ab 1100 px linke Navigationsleiste, mehrspaltige Ansichten ===== */
   @media (min-width:1100px){
@@ -1506,14 +1506,14 @@ const UI = {
   renderAll(){ this.fillSelects(); this.renderBelege(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
   erkennungsModus(){ // { cls, text } für die Anzeige
     const m = DB.settings.erkennung || 'auto', key = !!(DB.settings.gptKey || '').trim(), on = navigator.onLine;
-    if (m === 'lokal') return { cls:'lokal', text:'Erkennung: lokal' };
-    if (!key) return { cls:'lokal', text:'Erkennung: lokal (kein OpenAI-Key)' };
-    if (!on) return { cls:'lokal', text:'Erkennung: lokal (offline)' };
-    return { cls:'gpt', text: m === 'chatgpt' ? 'Erkennung: ChatGPT' : 'Erkennung: ChatGPT (Rückfall lokal)' };
+    if (m === 'lokal') return { cls:'lokal', text:'Erkennung: lokal', title:'Nur lokale Texterkennung (Einstellungen)' };
+    if (!key) return { cls:'lokal', text:'Erkennung: lokal', title:'Kein OpenAI-API-Key hinterlegt – es wird lokal erkannt' };
+    if (!on) return { cls:'lokal', text:'Erkennung: lokal', title:'Offline – ChatGPT nicht erreichbar, es wird lokal erkannt' };
+    return m === 'chatgpt' ? { cls:'gpt', text:'Erkennung: ChatGPT', title:'Nur ChatGPT' } : { cls:'gpt', text:'Erkennung: ChatGPT/lokal', title:'ChatGPT, bei Fehler lokale Texterkennung' };
   },
   renderStatus(){
     const em = this.erkennungsModus();
-    for (const id of ['erkPill', 'erkPill2']) { const e = $(id); e.className = 'pill erk ' + em.cls; e.textContent = em.text; }
+    for (const id of ['erkPill', 'erkPill2']) { const e = $(id); e.className = 'pill erk ' + em.cls; e.textContent = em.text; e.title = em.title; }
     const dot = $('dot'), pill = $('syncPill');
     const pending = DB.data.belege.filter(b => b.status !== 'ok').length;
     if (!navigator.onLine) { dot.className = 'statusdot err'; pill.textContent = 'Offline'; }
