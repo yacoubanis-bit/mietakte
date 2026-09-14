@@ -501,7 +501,29 @@
     </div>
 
     <div class="card">
-      <h2>Texterkennung (offline im Browser)</h2>
+      <h2>Belegerkennung (ChatGPT)</h2>
+      <div class="row">
+        <label class="f"><span class="lab">Erkennung</span>
+          <select id="sErkennung">
+            <option value="auto">ChatGPT, bei Fehler lokal (empfohlen)</option>
+            <option value="chatgpt">Nur ChatGPT</option>
+            <option value="lokal">Nur lokal (ohne Internet)</option>
+          </select>
+        </label>
+      </div>
+      <div class="keyrow">
+        <label class="f"><span class="lab">OpenAI API-Key</span><input type="password" id="sGptKey" placeholder="sk-…" autocomplete="off" spellcheck="false"></label>
+        <button class="icon" id="btnGptKeyToggle" title="Anzeigen"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Modell</span><input type="text" id="sGptModel" placeholder="gpt-5.6" autocomplete="off" spellcheck="false"></label>
+        <button class="narrow" id="btnGptTest" style="align-self:flex-end">Verbindung testen</button>
+      </div>
+      <div class="hint">Das Belegfoto wird an die OpenAI-API geschickt; das Modell liest Händler, Datum, Brutto, MwSt und Belegnummer aus und die App füllt die Felder. Der Schlüssel bleibt nur auf diesem Gerät (localStorage). Schlüssel unter <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style="color:var(--accent2)">platform.openai.com/api-keys</a> erzeugen; Abrechnung pro Bild (wenige Cent oder weniger). Ohne Schlüssel oder ohne Internet wird lokal erkannt.</div>
+    </div>
+
+    <div class="card">
+      <h2>Texterkennung lokal (offline, Rückfall)</h2>
       <div class="row">
         <label class="f"><span class="lab">Sprache der Belege</span>
           <select id="sOcrLang">
@@ -532,7 +554,7 @@
 
     <div class="card">
       <h2>Info</h2>
-      <div class="hint" style="margin-top:0">MietAkte v1.2 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Texterkennung läuft lokal auf dem Gerät, keine KI-Cloud. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
+      <div class="hint" style="margin-top:0">MietAkte v1.3 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Belegerkennung wahlweise über ChatGPT (Schlüssel nur auf diesem Gerät) oder lokal. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
     </div>
   </section>
 
@@ -625,7 +647,7 @@
    ===================================================================== */
 
 // ---------- Konstanten ----------
-const APP = { name:'MietAkte', version:'1.2', dbFile:'mietakte-daten.json' };
+const APP = { name:'MietAkte', version:'1.3', dbFile:'mietakte-daten.json' };
 // Voreingestellter Dropbox App-Key für alle Nutzer (aus der Dropbox App Console). Leer = jeder Nutzer trägt ihn selbst ein.
 const DEFAULT_DBX_APP_KEY = '';
 const KATEGORIEN = [
@@ -703,7 +725,7 @@ function confirmDlg(title, text, okLabel = 'Ja, löschen'){
 // ---------- Datenhaltung ----------
 const DB = {
   data:{ version:1, wohnungen:[], belege:[], geloescht:[], updatedAt:'' },
-  settings:{ dbxAppKey:DEFAULT_DBX_APP_KEY, dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true },
+  settings:{ dbxAppKey:DEFAULT_DBX_APP_KEY, dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true, erkennung:'auto', gptKey:'', gptModel:'gpt-5.6' },
   load(){
     try { const s = JSON.parse(localStorage.getItem(KEY('settings')) || 'null'); if (s) Object.assign(this.settings, s); } catch(e){ console.warn('Einstellungen laden:', e); }
     if (!this.settings.dbxAppKey && DEFAULT_DBX_APP_KEY) this.settings.dbxAppKey = DEFAULT_DBX_APP_KEY;
@@ -954,7 +976,7 @@ async function prepareFile(file){
     mime = 'image/jpeg'; ext = 'jpg';
   }
   const previewBlob = isPdf ? await new Promise(res => storeCv.toBlob(res, 'image/jpeg', 0.8)) : blob;
-  return { blob, mime, ext, previewUrl:URL.createObjectURL(previewBlob), isPdf, name:file.name, ocrCanvas };
+  return { blob, mime, ext, previewUrl:URL.createObjectURL(previewBlob), isPdf, name:file.name, ocrCanvas, aiBlob:previewBlob };
 }
 // PDF: erste Seite über pdf.js (wird nur bei Bedarf nachgeladen) in ein Bild rendern
 async function renderPdfPage(file){
@@ -988,6 +1010,86 @@ function enhanceForOcr(cv){
   for (let i = 0, p = 0; i < d.length; i += 4, p++) { const v = Math.max(0, Math.min(255, ((gray[p] - lo) / range) * 255)); d[i] = d[i + 1] = d[i + 2] = v; }
   ctx.putImageData(img, 0, 0);
   return cv;
+}
+
+// ---------- Belegerkennung über ChatGPT (OpenAI Responses API, direkt vom Gerät, Schlüssel nur lokal) ----------
+const GPT = {
+  schema:{
+    type:'object', additionalProperties:false,
+    properties:{
+      haendler:   { type:'string', description:'Name des Händlers/Lieferanten/Handwerkers, kurz, ohne Rechtsform' },
+      datum:      { type:['string','null'], description:'Rechnungs-/Belegdatum als JJJJ-MM-TT, null wenn nicht erkennbar' },
+      brutto:     { type:['number','null'], description:'Zu zahlender Gesamtbetrag brutto in Euro' },
+      mwst:       { type:['number','null'], description:'Ausgewiesener Umsatzsteuerbetrag in Euro, Summe aller Sätze; null wenn nicht ausgewiesen' },
+      mwst_satz:  { type:['number','null'], description:'Vorherrschender Steuersatz in Prozent (19 oder 7), null wenn unbekannt' },
+      belegnummer:{ type:['string','null'], description:'Rechnungs-/Bon-Nummer, null wenn keine' },
+      waehrung:   { type:'string', description:'Währungscode, z. B. EUR' },
+      zuversicht: { type:'string', enum:['hoch','mittel','niedrig'], description:'Wie sicher sind Betrag und Datum abgelesen' },
+      hinweis:    { type:'string', description:'Kurzer deutscher Hinweis auf Unsicherheiten, leer wenn keine' },
+    },
+    required:['haendler','datum','brutto','mwst','mwst_satz','belegnummer','waehrung','zuversicht','hinweis'],
+  },
+  instructions:`Du liest deutsche Belege (Kassenbons, Rechnungen, Quittungen) für die Vermietung von Wohnungen aus.
+Gib die Werte exakt so zurück, wie sie auf dem Beleg stehen:
+- brutto: die Endsumme inkl. MwSt (Summe / Gesamt / zu zahlen). Schreibweise 1.234,56 bedeutet 1234.56.
+- mwst: der ausgewiesene Umsatzsteuerbetrag (bei mehreren Sätzen die Summe). Wenn nur Netto und Satz angegeben sind, berechne die MwSt. Bei Belegen ohne USt-Ausweis (Kleinunternehmer): null.
+- datum: das Beleg-/Rechnungsdatum, nicht Liefer- oder Fälligkeitsdatum.
+- haendler: der Verkäufer bzw. Handwerksbetrieb.
+Rate nicht: Unleserliches als null zurückgeben und im Hinweis nennen.`,
+  headers(){ return { Authorization:'Bearer ' + DB.settings.gptKey.trim(), 'Content-Type':'application/json' }; },
+  explain(status, j){
+    const m = (j && j.error && j.error.message) || '';
+    if (status === 401) return 'OpenAI: API-Key ungültig.';
+    if (status === 429) return /quota|billing/i.test(m) ? 'OpenAI: kein Guthaben bzw. Limit erreicht – Abrechnung im OpenAI-Konto prüfen.' : 'OpenAI: zu viele Anfragen, bitte kurz warten.';
+    if (status === 404 || /model/i.test(m) && status === 400) return 'OpenAI: Modell „' + DB.settings.gptModel + '“ unbekannt – Modellname in den Einstellungen prüfen.';
+    if (status >= 500) return 'OpenAI: Dienst vorübergehend gestört (' + status + ').';
+    return 'OpenAI: ' + (m || ('HTTP ' + status));
+  },
+  async call(body){
+    let r;
+    try { r = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers:this.headers(), body:JSON.stringify(body) }); }
+    catch(e){ throw new Error('Keine Verbindung zu OpenAI – Internet prüfen. Bei ungültigem API-Key liefert OpenAI ebenfalls keine lesbare Antwort, daher auch den Schlüssel prüfen.'); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(this.explain(r.status, j));
+    return j;
+  },
+  outputText(j){
+    const parts = [];
+    for (const it of (j.output || [])) if (it.type === 'message') for (const c of (it.content || [])) {
+      if (c.type === 'output_text') parts.push(c.text);
+      if (c.type === 'refusal') throw new Error('Das Modell hat die Auswertung abgelehnt: ' + c.refusal);
+    }
+    return parts.join('');
+  },
+  async erkennen(prep, onProgress){
+    if (!DB.settings.gptKey.trim()) throw new Error('Kein OpenAI-API-Key hinterlegt.');
+    if (!navigator.onLine) throw new Error('Offline – ChatGPT nicht erreichbar.');
+    if (onProgress) onProgress('Beleg wird an ChatGPT gesendet');
+    const data = await blobToBase64(prep.aiBlob || prep.blob);
+    const j = await this.call({
+      model: DB.settings.gptModel.trim() || 'gpt-5.6',
+      instructions: this.instructions,
+      input:[{ role:'user', content:[
+        { type:'input_text', text:'Lies die Belegdaten aus diesem Beleg aus.' },
+        { type:'input_image', image_url:'data:image/jpeg;base64,' + data, detail:'high' },
+      ] }],
+      text:{ format:{ type:'json_schema', name:'beleg', strict:true, schema:this.schema } },
+      max_output_tokens: 600,
+    });
+    if (j.status === 'incomplete') throw new Error('OpenAI: Antwort unvollständig (' + ((j.incomplete_details || {}).reason || '?') + ').');
+    let out;
+    try { out = JSON.parse(this.outputText(j)); } catch(e){ throw new Error('OpenAI: Antwort nicht lesbar.'); }
+    out.datum = out.datum || ''; out.belegnummer = out.belegnummer || ''; out.engine = 'ChatGPT';
+    return out;
+  },
+  async test(){
+    if (!DB.settings.gptKey.trim()) throw new Error('Kein API-Key eingetragen.');
+    const j = await this.call({ model: DB.settings.gptModel.trim() || 'gpt-5.6', input:'Antworte nur mit OK.', max_output_tokens:16 });
+    return j.model || 'ok';
+  },
+};
+function blobToBase64(blob){
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); });
 }
 
 // ---------- Belegerkennung: Texterkennung (Tesseract, lokal im Browser) + regelbasierte Auswertung ----------
@@ -1329,6 +1431,16 @@ const UI = {
     $('sDbxKey').onchange = () => { DB.settings.dbxAppKey = $('sDbxKey').value.trim(); DB.saveSettings(); };
     $('sDbxBase').onchange = () => { DB.settings.dbxBase = $('sDbxBase').value.trim() || '/MietAkte'; DB.saveSettings(); this.renderSettings(); };
     $('sOcrLang').onchange = () => { DB.settings.ocrLang = $('sOcrLang').value; DB.saveSettings(); this.renderSettings(); };
+    $('sErkennung').onchange = () => { DB.settings.erkennung = $('sErkennung').value; DB.saveSettings(); };
+    $('sGptKey').onchange = () => { DB.settings.gptKey = $('sGptKey').value.trim(); DB.saveSettings(); };
+    $('sGptModel').onchange = () => { DB.settings.gptModel = $('sGptModel').value.trim() || 'gpt-5.6'; DB.saveSettings(); this.renderSettings(); };
+    $('btnGptKeyToggle').onclick = () => { const i = $('sGptKey'); i.type = i.type === 'password' ? 'text' : 'password'; };
+    $('btnGptTest').onclick = async () => {
+      DB.settings.gptKey = $('sGptKey').value.trim(); DB.settings.gptModel = $('sGptModel').value.trim() || 'gpt-5.6'; DB.saveSettings();
+      const t = toast('Teste Verbindung zu OpenAI …', '', 0);
+      try { const m = await GPT.test(); t.remove(); toast('OpenAI erreichbar (Modell ' + m + ').', 'ok'); }
+      catch(e){ t.remove(); toast('Test fehlgeschlagen: ' + e.message, 'err', 9000); }
+    };
     $('sAuto').onchange = () => { DB.settings.autoErkennen = $('sAuto').value === '1'; DB.saveSettings(); };
     $('btnOcrPreload').onclick = async () => {
       $('btnOcrPreload').disabled = true;
@@ -1470,6 +1582,7 @@ const UI = {
   renderSettings(){
     const s = DB.settings;
     $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sDbxKeyNote').textContent = DEFAULT_DBX_APP_KEY && s.dbxAppKey === DEFAULT_DBX_APP_KEY ? '(voreingestellt)' : ''; $('sOcrLang').value = s.ocrLang || 'deu'; $('sAuto').value = s.autoErkennen ? '1' : '0';
+    $('sErkennung').value = s.erkennung || 'auto'; $('sGptKey').value = s.gptKey || ''; $('sGptModel').value = s.gptModel || 'gpt-5.6';
     if (!OCR.loading) $('ocrState').innerHTML = OCR.ready() ? '<span class="statusdot on"></span> Erkennungsmodul geladen (' + esc(OCR.lang) + ').' : (typeof Tesseract === 'undefined' ? '<span class="statusdot err"></span> Erkennungsmodul nicht verfügbar (Internetverbindung für den ersten Start nötig).' : '<span class="statusdot"></span> Erkennungsmodul wird beim ersten Beleg geladen.');
     $('redirectUri').textContent = Dropbox.redirectUri();
     const a = Dropbox.auth;
@@ -1507,22 +1620,31 @@ const UI = {
     pv.classList.add('busy'); $('btnReRecognize').disabled = true; $('btnSave').disabled = true;
     note.className = 'ai-note show'; note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Beleg wird ausgewertet …';
     try {
-      const r = await OCR.erkennen(this.current, p => { note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>' + esc(p) + ' …'; });
+      const prog = p => { note.innerHTML = '<span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>' + esc(p) + ' …'; };
+      const mode = DB.settings.erkennung || 'auto';
+      let r = null, gptFehler = '';
+      if (mode !== 'lokal' && DB.settings.gptKey) {
+        try { r = await GPT.erkennen(this.current, prog); }
+        catch(e){ gptFehler = e.message; if (mode === 'chatgpt') throw e; }
+      } else if (mode === 'chatgpt') throw new Error('Kein OpenAI-API-Key hinterlegt (Einstellungen).');
+      if (!r) { r = await OCR.erkennen(this.current, prog); r.engine = 'lokal'; }
       const set = (id, v) => { const el = $(id); if (v != null && v !== '') { el.value = v; el.classList.add('erkannt'); } };
       set('eHaendler', r.haendler);
       set('eDatum', parseDatum(r.datum));
       set('eBrutto', r.brutto != null ? num2(r.brutto) : '');
       set('eMwst', r.mwst != null ? num2(r.mwst) : '');
       if (r.belegnummer && !$('eBemerkung').value) $('eBemerkung').value = 'Beleg-Nr. ' + r.belegnummer;
-      $('ocrText').textContent = (r.text || '').trim() || '(kein Text erkannt)';
-      $('ocrDetails').style.display = '';
+      if (r.engine === 'lokal') { $('ocrText').textContent = (r.text || '').trim() || '(kein Text erkannt)'; $('ocrDetails').style.display = ''; }
+      else $('ocrDetails').style.display = 'none';
       const parts = [];
       const conf = r.confidence != null ? ', Textqualität ' + Math.round(r.confidence) + ' %' : '';
-      parts.push(`Erkannt (${({ hoch:'hohe', mittel:'mittlere', niedrig:'geringe' })[r.zuversicht] || 'unbekannte'} Sicherheit${r.mwst_satz ? ', ' + r.mwst_satz + ' % MwSt' : ''}${conf}).`);
+      parts.push(`${r.engine === 'ChatGPT' ? 'ChatGPT' : 'Lokal'} erkannt (${({ hoch:'hohe', mittel:'mittlere', niedrig:'geringe' })[r.zuversicht] || 'unbekannte'} Sicherheit${r.mwst_satz ? ', ' + r.mwst_satz + ' % MwSt' : ''}${conf}).`);
       if (r.hinweis) parts.push(r.hinweis);
+      if (r.waehrung && r.waehrung !== 'EUR') parts.push('Achtung: Währung ' + r.waehrung + '.');
+      if (gptFehler) parts.push('ChatGPT nicht verfügbar (' + gptFehler + ') – lokal erkannt.');
       if (r.brutto == null) parts.push('Betrag bitte eintragen.');
-      if (!r.text || !r.text.trim()) parts.push('Kein Text lesbar – Beleg gerade, hell und scharf fotografieren.');
-      note.className = 'ai-note show' + ((r.zuversicht === 'niedrig' || r.brutto == null) ? ' warn' : '');
+      if (r.engine === 'lokal' && (!r.text || !r.text.trim())) parts.push('Kein Text lesbar – Beleg gerade, hell und scharf fotografieren.');
+      note.className = 'ai-note show' + ((r.zuversicht === 'niedrig' || r.brutto == null || gptFehler) ? ' warn' : '');
       note.textContent = parts.join(' ');
     } catch(e){
       note.className = 'ai-note err show'; note.textContent = 'Erkennung fehlgeschlagen: ' + e.message + ' Werte bitte manuell eintragen.';

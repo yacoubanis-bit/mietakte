@@ -1,9 +1,10 @@
 # MietAkte — Belegverwaltung für vermietete Wohnungen (SYNIUM)
 
 Web-App zum Erfassen von Renovierungs- und Instandhaltungsbelegen: Beleg fotografieren,
-Betrag/MwSt/Datum/Händler **lokal auf dem Gerät** per Texterkennung (Tesseract-OCR als
-WebAssembly) auslesen, prüfen, einer Wohnung zuordnen und in Dropbox ablegen. Es wird
-**kein KI-Dienst** angebunden – Belege verlassen das Gerät nur Richtung eigene Dropbox. Übersicht mit Filtern, Summen je Wohnung
+Betrag/MwSt/Datum/Händler auslesen lassen – wahlweise über **ChatGPT** (OpenAI-API, deutlich
+treffsicherer) oder **lokal auf dem Gerät** (Tesseract-OCR, ohne Internet) –, prüfen, einer
+Wohnung zuordnen und in Dropbox ablegen. Für eine Person auf dem eigenen Handy; Schlüssel
+bleiben nur auf dem Gerät. Übersicht mit Filtern, Summen je Wohnung
 und Excel-Export fürs Finanzamt.
 
 > **Dateien:** `index.html` (die App) + Ordner `Logo/` (muss neben `index.html` liegen).
@@ -43,9 +44,25 @@ die Adresse eingetragen ist, die MietAkte in den Einstellungen anzeigt.
 
 Die Anmeldung bleibt über ein Refresh-Token dauerhaft bestehen (OAuth 2 mit PKCE, kein App-Secret).
 
-### 2. Texterkennung
+### 2. Belegerkennung über ChatGPT (empfohlen)
+1. Unter <https://platform.openai.com/api-keys> einen API-Key erzeugen (OpenAI-Konto mit
+   Guthaben; abgerechnet wird pro Bild, wenige Cent oder weniger).
+2. In MietAkte → Einstellungen → **OpenAI API-Key** eintragen, Modell prüfen (Standard
+   `gpt-5.6`, änderbar) → **Verbindung testen**.
+3. Erkennung „ChatGPT, bei Fehler lokal": Das Foto wird an OpenAI geschickt, das Modell liest
+   Händler, Datum, Brutto, MwSt und Belegnummer aus, die App füllt die Felder. Ohne Internet
+   oder bei einem Fehler springt automatisch die lokale Texterkennung ein.
+
+Der Schlüssel liegt nur im Browser dieses Geräts (localStorage) und wird direkt an
+`api.openai.com` gesendet. Die App ist für **eine Person** gedacht – wer den Schlüssel in eine
+öffentlich verteilte App legt, gibt ihn allen Nutzern preis. Hinweis: Bei einem ungültigen
+Schlüssel meldet der Browser nur „Keine Verbindung", weil OpenAI Fehlerantworten ohne
+CORS-Freigabe liefert – dann Schlüssel prüfen.
+
+### 3. Lokale Texterkennung (Rückfall, offline)
 Keine Einrichtung nötig. Unter Einstellungen kann die Sprache (Deutsch bzw. Deutsch + Englisch)
-gewählt und das Erkennungsmodul vorab geladen werden, damit der erste Beleg schneller geht.
+gewählt und das Erkennungsmodul vorab geladen werden (einmalig ca. 15 MB). Mit „Nur lokal"
+verlässt kein Beleg das Gerät, die Trefferquote ist aber geringer als mit ChatGPT.
 
 ## Bedienung
 Die Oberfläche passt sich der Bildschirmgröße an: auf dem Handy mit unterer Tab-Leiste, am
@@ -55,10 +72,10 @@ bis zu 2100 px Inhaltsbreite.
 
 - **Wohnungen**: Mietobjekte anlegen (Name, Adresse, Dropbox-Ordnername). Ordner werden
   unterhalb des Basisordners (Standard `/MietAkte`) angelegt.
-- **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Text wird auf dem Gerät erkannt,
-  daraus werden Summe, MwSt, Datum, Händler und Belegnummer regelbasiert ermittelt und blau
-  markiert → prüfen/korrigieren → Wohnung und Kategorie wählen → **Speichern & hochladen**.
-  „Erkannten Text anzeigen" zeigt den Rohtext zum Gegenprüfen. Tipp: Beleg gerade, hell und
+- **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Beleg wird über ChatGPT bzw.
+  lokal ausgewertet, die Werte werden blau markiert → prüfen/korrigieren → Wohnung und
+  Kategorie wählen → **Speichern & hochladen**. Der Hinweis unter dem Foto nennt, welche
+  Erkennung gearbeitet hat; bei lokaler Erkennung zeigt „Erkannten Text anzeigen" den Rohtext. Tipp: Beleg gerade, hell und
   scharf fotografieren; bereits erfasste Händlernamen werden beim nächsten Mal wiedererkannt.
   Das Bild wird auf max. 1800 px verkleinert und als
   `JJJJ-MM-TT_Händler_Betrag,xxEUR.jpg` im Wohnungsordner abgelegt.
