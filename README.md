@@ -83,7 +83,7 @@ bis zu 2100 px Inhaltsbreite.
   `JJJJ-MM-TT_Händler_Betrag,xxEUR.jpg` im Wohnungsordner abgelegt.
 - **Übersicht**: Dashboard nach Steuerjahr – je Jahr eine Karte mit Jahressumme (Brutto, MwSt,
   Netto), Summen je Kategorie und einer Tabelle aller Belege des Jahres (Datum, Händler,
-  Kategorie, Brutto, MwSt) samt Summenzeile; filterbar nach Wohnung und Kategorie, Tipp auf
+  Brutto, MwSt) samt Summenzeile; filterbar nach Wohnung und Kategorie, Tipp auf
   eine Zeile öffnet den Beleg, „Excel JJJJ" exportiert das Jahr.
 - **Belege**: Liste mit Filter (Wohnung, Kategorie, Zeitraum/Jahr, Suche), Summen je Wohnung,
   Bearbeiten/Löschen per Tipp auf einen Beleg. **Excel-Export** erzeugt eine Aufstellung

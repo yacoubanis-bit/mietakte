@@ -285,8 +285,8 @@
   .ycard .ykat .chip b{font-family:var(--mono); margin-left:4px; color:var(--fg)}
   .ywrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
   table.ytable{width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed}
-  table.ytable col.c-d{width:58px} table.ytable col.c-k{width:92px} table.ytable col.c-b{width:88px} table.ytable col.c-m{width:78px}
-  @media (max-width:480px){ table.ytable{font-size:11px} table.ytable th{font-size:9px; letter-spacing:.3px} table.ytable th,table.ytable td{padding-left:5px; padding-right:5px} table.ytable th:first-child,table.ytable td:first-child{padding-left:10px} table.ytable th:last-child,table.ytable td:last-child{padding-right:10px} table.ytable col.c-d{width:46px} table.ytable col.c-k{width:74px} table.ytable col.c-b{width:74px} table.ytable col.c-m{width:64px} table.ytable td.k .chip{padding:2px 5px; font-size:9px} }
+  table.ytable col.c-d{width:64px} table.ytable col.c-b{width:96px} table.ytable col.c-m{width:86px}
+  @media (max-width:480px){ table.ytable{font-size:11px} table.ytable th{font-size:9px; letter-spacing:.3px} table.ytable th,table.ytable td{padding-left:5px; padding-right:5px} table.ytable th:first-child,table.ytable td:first-child{padding-left:10px} table.ytable th:last-child,table.ytable td:last-child{padding-right:10px} table.ytable col.c-d{width:52px} table.ytable col.c-b{width:84px} table.ytable col.c-m{width:74px} }
   table.ytable th{font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--faint); font-weight:700; text-align:left; padding:6px 8px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:rgba(255,255,255,.025); white-space:nowrap}
   table.ytable td{padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle}
   table.ytable tr.r{cursor:pointer}
@@ -1729,12 +1729,11 @@ const UI = {
       const brutto = sum(l, 'brutto'), mwst = sum(l, 'mwst');
       const kats = KATEGORIEN.map(k => { const kl = l.filter(b => b.kategorie === k.id); return kl.length ? `<span class="chip ${k.cls}">${k.kurz} · ${kl.length}<b>${euro(sum(kl, 'brutto'))}</b></span>` : ''; }).join('');
       const rows = l.map(b => {
-        const w = DB.wohnung(b.wohnungId); const k = kat(b.kategorie);
+        const w = DB.wohnung(b.wohnungId);
         const st = b.status === 'ok' ? '' : `<span class="st ${b.status === 'fehler' ? 'err' : 'warn'}" title="${b.status === 'fehler' ? 'Upload fehlgeschlagen' : 'Upload ausstehend'}">${b.status === 'fehler' ? '⚠' : '⏳'}</span>`;
         return `<tr class="r" data-id="${b.id}">
           <td class="d">${esc(fmtDatum(b.datum).slice(0, 6))}</td>
           <td class="h">${esc(b.haendler || '–')}${st}${alle ? `<small>${esc(w ? w.name : '?')}</small>` : ''}</td>
-          <td class="k"><span class="chip ${k.cls}">${k.kurz}</span></td>
           <td class="num">${euro(b.brutto)}</td>
           <td class="num">${b.mwst != null ? euro(b.mwst) : '–'}</td>
         </tr>`;
@@ -1744,10 +1743,10 @@ const UI = {
         <div class="ysum"><div>Brutto<b>${euro(brutto)}</b></div><div>MwSt<b>${euro(mwst)}</b></div><div>Netto<b>${euro(r2(brutto - mwst))}</b></div></div>
         <div class="ykat">${kats}</div>
         <div class="ywrap"><table class="ytable">
-          <colgroup><col class="c-d"><col><col class="c-k"><col class="c-b"><col class="c-m"></colgroup>
-          <thead><tr><th>Datum</th><th>Händler</th><th>Kategorie</th><th class="num">Brutto</th><th class="num">MwSt</th></tr></thead>
+          <colgroup><col class="c-d"><col><col class="c-b"><col class="c-m"></colgroup>
+          <thead><tr><th>Datum</th><th>Händler</th><th class="num">Brutto</th><th class="num">MwSt</th></tr></thead>
           <tbody>${rows}</tbody>
-          <tfoot><tr><td colspan="3">Summe ${esc(y)}</td><td class="num">${euro(brutto)}</td><td class="num">${euro(mwst)}</td></tr></tfoot>
+          <tfoot><tr><td colspan="2">Summe ${esc(y)}</td><td class="num">${euro(brutto)}</td><td class="num">${euro(mwst)}</td></tr></tfoot>
         </table></div>
         <div class="yacts"><button class="small" data-xlsx="${esc(y)}"><svg viewBox="0 0 24 24"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13l6 4M15 13l-6 4"/></svg>Excel ${esc(y)}</button></div>
       </div>`;
