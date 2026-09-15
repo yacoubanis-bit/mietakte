@@ -93,7 +93,7 @@ bis zu 2100 px Inhaltsbreite.
   Bearbeiten/Löschen per Tipp auf einen Beleg.
 - **Excel Steuerjahr**: Erzeugt je Steuerjahr **eine** Datei `Steuer_JJJJ.xlsx` mit **allen** Belegen
   des Jahres über alle Wohnungen (ungefiltert): Blatt „Steuer JJJJ" mit Nr., Wohnung, Datum,
-  Händler (Link zum Beleg), Kategorie, Brutto, MwSt, Bemerkung und Summenzeile; dazu die Blätter
+  Händler (Link zum Beleg), Beleg-Nr., Kategorie, Brutto, MwSt, Bemerkung und Summenzeile; dazu die Blätter
   „Je Wohnung" und „Nach Kategorie". Die Datei wird lokal heruntergeladen **und** in Dropbox unter
   `<Basisordner>/Steuer/Steuer_JJJJ.xlsx` abgelegt – beim erneuten Erstellen wird die Datei des
   Jahres überschrieben. Aufruf über „Excel JJJJ" in der Übersicht oder „Excel Steuerjahr" in der

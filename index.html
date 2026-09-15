@@ -581,7 +581,7 @@
         <label class="f"><span class="lab">Jahr</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="fJahr" data-kind="liste" data-title="Steuerjahr" data-icon="cal" data-allow-empty="1"></button><select id="fJahr"><option value="">–</option></select></div></label>
       </div>
       <div class="row">
-        <label class="f"><span class="lab">Suche</span><input type="text" id="fSuche" placeholder="Händler, Bemerkung …"></label>
+        <label class="f"><span class="lab">Suche</span><input type="text" id="fSuche" placeholder="Händler, Belegnummer, Bemerkung …"></label>
         <button class="small narrow ghost" id="btnFilterReset" style="align-self:flex-end">Zurücksetzen</button>
       </div>
     </div>
@@ -637,7 +637,10 @@
         <label class="f"><span class="lab">davon MwSt</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="eMwst" placeholder="0,00"></span></label>
       </div>
       <div class="row">
-        <label class="f"><span class="lab">Bemerkung</span><textarea id="eBemerkung" rows="2" placeholder="z. B. Badsanierung, Rechnung Nr. …"></textarea></label>
+        <label class="f"><span class="lab">Beleg- / Rechnungsnummer</span><input type="text" id="eBelegNr" placeholder="z. B. 2026-0042 oder Bon-Nr." autocomplete="off"></label>
+      </div>
+      <div class="row">
+        <label class="f"><span class="lab">Bemerkung</span><textarea id="eBemerkung" rows="2" placeholder="z. B. Badsanierung, Zimmer, Anlass …"></textarea></label>
       </div>
       <div class="hint" id="eHint">Erkannte Werte sind blau markiert – bitte vor dem Speichern prüfen.</div>
       <div class="btnrow">
@@ -780,6 +783,7 @@
         <label class="f"><span class="lab">Brutto</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="bBrutto"></span></label>
         <label class="f"><span class="lab">MwSt</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="bMwst"></span></label>
       </div>
+      <div class="row"><label class="f"><span class="lab">Beleg- / Rechnungsnummer</span><input type="text" id="bBelegNr" autocomplete="off"></label></div>
       <div class="row"><label class="f"><span class="lab">Bemerkung</span><textarea id="bBemerkung" rows="2"></textarea></label></div>
       <div class="kv" id="bInfo"></div>
     </div>
@@ -1525,23 +1529,23 @@ const Export = {
     rows.push([`Steuerjahr ${jahr} – Renovierungs- und Instandhaltungsaufwand (alle Wohnungen)`]);
     rows.push([`Erstellt am ${fmtDatum(nowIso().slice(0, 10))} mit ${APP.name} · ${belege.length} Belege`]);
     rows.push([]);
-    const head = ['Nr.', 'Wohnung', 'Datum', 'Händler / Lieferant', 'Kategorie', 'Brutto (€)', 'MwSt (€)', 'Bemerkung'];
+    const head = ['Nr.', 'Wohnung', 'Datum', 'Händler / Lieferant', 'Beleg-Nr.', 'Kategorie', 'Brutto (€)', 'MwSt (€)', 'Bemerkung'];
     rows.push(head);
     const start = rows.length + 1;                    // erste Datenzeile (1-basiert)
-    belege.forEach((b, i) => rows.push([i + 1, (DB.wohnung(b.wohnungId) || {}).name || '', b.datum ? new Date(b.datum + 'T00:00:00') : '', b.haendler || '', kat(b.kategorie).name, b.brutto, b.mwst, b.bemerkung || '']));
+    belege.forEach((b, i) => rows.push([i + 1, (DB.wohnung(b.wohnungId) || {}).name || '', b.datum ? new Date(b.datum + 'T00:00:00') : '', b.haendler || '', b.belegnummer || '', kat(b.kategorie).name, b.brutto, b.mwst, b.bemerkung || '']));
     const end = start + belege.length - 1;
-    rows.push(['Summe', '', '', '', '', '', '', '']);
+    rows.push(['Summe', '', '', '', '', '', '', '', '']);
     const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates:true });
     const sumRow = end + 1;
-    for (const k of [5, 6]) { const c = XLSX.utils.encode_col(k); ws[c + sumRow] = { t:'n', f: belege.length ? `SUM(${c}${start}:${c}${end})` : '0', z:'#,##0.00' }; }
-    if (belege.length) this.numFmt(ws, [5, 6], start, end);
+    for (const k of [6, 7]) { const c = XLSX.utils.encode_col(k); ws[c + sumRow] = { t:'n', f: belege.length ? `SUM(${c}${start}:${c}${end})` : '0', z:'#,##0.00' }; }
+    if (belege.length) this.numFmt(ws, [6, 7], start, end);
     for (let r = start; r <= end; r++) {
       const d = 'C' + r; if (ws[d] && ws[d].v) ws[d].z = 'DD.MM.YYYY';
       const bl = belege[r - start]; if (bl && bl.dropboxLink && ws['D' + r]) ws['D' + r].l = { Target:bl.dropboxLink, Tooltip:'Beleg in Dropbox öffnen' };
     }
-    ws['!cols'] = [5, 28, 12, 28, 20, 13, 13, 34].map(wch => ({ wch }));
-    ws['!merges'] = [{ s:{ r:0, c:0 }, e:{ r:0, c:7 } }];
-    ws['!autofilter'] = { ref:`A4:H${Math.max(end, start)}` };
+    ws['!cols'] = [5, 28, 12, 28, 16, 20, 13, 13, 34].map(wch => ({ wch }));
+    ws['!merges'] = [{ s:{ r:0, c:0 }, e:{ r:0, c:8 } }];
+    ws['!autofilter'] = { ref:`A4:I${Math.max(end, start)}` };
     return ws;
   },
   wohnungsBlatt(belege){
@@ -1753,7 +1757,7 @@ const UI = {
     $('btnSave').onclick = () => this.saveBeleg();
     $('btnResetForm').onclick = () => this.resetForm(true);
     for (const id of ['eBrutto', 'eMwst', 'bBrutto', 'bMwst']) $(id).onblur = () => { const v = parseBetrag($(id).value); $(id).value = v == null ? '' : num2(v); };
-    for (const id of ['eWohnung', 'eKategorie', 'eDatum', 'eHaendler', 'eBrutto', 'eMwst']) $(id).addEventListener('input', () => $(id).classList.remove('erkannt'));
+    for (const id of ['eWohnung', 'eKategorie', 'eDatum', 'eHaendler', 'eBrutto', 'eMwst', 'eBelegNr']) $(id).addEventListener('input', () => $(id).classList.remove('erkannt'));
     // Wohnungen
     $('btnNewWohnung').onclick = () => this.openWohnung(null);
     $('dlgWohnung').querySelector('form').onsubmit = (e) => { e.preventDefault(); this.saveWohnung(); };
@@ -1902,7 +1906,7 @@ const UI = {
     return DB.data.belege.filter(b =>
       (!wf || b.wohnungId === wf) && (!kf || b.kategorie === kf) &&
       (!von || (b.datum || '') >= von) && (!bis || (b.datum || '') <= bis) &&
-      (!q || (b.haendler || '').toLowerCase().includes(q) || (b.bemerkung || '').toLowerCase().includes(q))
+      (!q || (b.haendler || '').toLowerCase().includes(q) || (b.bemerkung || '').toLowerCase().includes(q) || (b.belegnummer || '').toLowerCase().includes(q))
     ).sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || (b.erstellt || '').localeCompare(a.erstellt || ''));
   },
   filterLabel(){
@@ -1933,7 +1937,7 @@ const UI = {
           <div class="d"><b>${esc(d[0] || '–')}</b>${esc((d[1] || '') + (d[2] ? '.' + d[2].slice(2) : ''))}</div>
           <div class="h">${esc(b.haendler || '–')}</div>
           <div class="b">${euro(b.brutto)}</div>
-          <div class="m"><span class="chip ${k.cls}">${k.name}</span><span>${esc(w ? w.name : '?')}</span>${b.mwst != null ? `<span>MwSt ${euro(b.mwst)}</span>` : ''}</div>
+          <div class="m"><span class="chip ${k.cls}">${k.name}</span><span>${esc(w ? w.name : '?')}</span>${b.mwst != null ? `<span>MwSt ${euro(b.mwst)}</span>` : ''}${b.belegnummer ? `<span>Nr. ${esc(b.belegnummer)}</span>` : ''}</div>
           ${st}
         </div>`;
       }).join('');
@@ -2072,7 +2076,7 @@ const UI = {
       set('eDatum', parseDatum(r.datum));
       set('eBrutto', r.brutto != null ? num2(r.brutto) : '');
       set('eMwst', r.mwst != null ? num2(r.mwst) : '');
-      if (r.belegnummer && !$('eBemerkung').value) $('eBemerkung').value = 'Beleg-Nr. ' + r.belegnummer;
+      set('eBelegNr', r.belegnummer);
       Picker.syncAll();
       if (r.engine === 'lokal') { $('ocrText').textContent = (r.text || '').trim() || '(kein Text erkannt)'; $('ocrDetails').style.display = ''; }
       else $('ocrDetails').style.display = 'none';
@@ -2092,7 +2096,7 @@ const UI = {
   },
   resetForm(keepWohnung){
     const w = $('eWohnung').value;
-    for (const id of ['eDatum', 'eHaendler', 'eBrutto', 'eMwst', 'eBemerkung']) { $(id).value = ''; $(id).classList.remove('erkannt'); }
+    for (const id of ['eDatum', 'eHaendler', 'eBrutto', 'eMwst', 'eBelegNr', 'eBemerkung']) { $(id).value = ''; $(id).classList.remove('erkannt'); }
     $('eKategorie').value = 'erhaltung'; $('eKategorie').classList.remove('erkannt'); delete $('eKategorie').dataset.touched;
     if (keepWohnung) $('eWohnung').value = w;
     Picker.syncAll();
@@ -2106,7 +2110,7 @@ const UI = {
     const brutto = parseBetrag($('eBrutto').value); if (brutto == null) { toast('Bitte den Bruttobetrag eintragen.', 'warn'); $('eBrutto').focus(); return; }
     const mwst = parseBetrag($('eMwst').value);
     if (mwst != null && mwst > brutto) { toast('Die MwSt kann nicht größer als der Bruttobetrag sein.', 'warn'); $('eMwst').focus(); return; }
-    const b = { id:uid(), wohnungId, datum, haendler, brutto, mwst, kategorie:$('eKategorie').value, bemerkung:$('eBemerkung').value.trim(),
+    const b = { id:uid(), wohnungId, datum, haendler, brutto, mwst, kategorie:$('eKategorie').value, belegnummer:$('eBelegNr').value.trim(), bemerkung:$('eBemerkung').value.trim(),
       ext:this.current.ext, mime:this.current.mime, dateiName:'', dropboxPath:'', dropboxLink:'', status:'ausstehend', fehler:'', erstellt:nowIso(), geaendert:nowIso() };
     $('btnSave').disabled = true;
     try {
@@ -2125,7 +2129,7 @@ const UI = {
     const b = DB.beleg(id); if (!b) return;
     this.editId = id; this.fillSelects();
     $('bWohnung').value = b.wohnungId; $('bKategorie').value = b.kategorie; $('bDatum').value = b.datum || ''; $('bHaendler').value = b.haendler || '';
-    $('bBrutto').value = num2(b.brutto); $('bMwst').value = num2(b.mwst); $('bBemerkung').value = b.bemerkung || '';
+    $('bBrutto').value = num2(b.brutto); $('bMwst').value = num2(b.mwst); $('bBelegNr').value = b.belegnummer || ''; $('bBemerkung').value = b.bemerkung || '';
     Picker.syncAll();
     const st = b.status === 'ok' ? '<span class="chip ok">☁ In Dropbox</span>' : b.status === 'laedt' ? '<span class="chip warn">lädt …</span>' : `<span class="chip ${b.status === 'fehler' ? 'err' : 'warn'}">${b.status === 'fehler' ? '⚠ Upload fehlgeschlagen' : '⏳ Upload ausstehend'}</span>`;
     $('bInfo').innerHTML = `<div class="k">Status</div><div class="v">${st}${b.fehler ? '<div style="color:var(--red);font-size:12px;margin-top:4px">' + esc(b.fehler) + '</div>' : ''}</div>
@@ -2138,7 +2142,7 @@ const UI = {
   saveEdit(){
     const b = DB.beleg(this.editId); if (!b) return;
     const brutto = parseBetrag($('bBrutto').value); if (brutto == null) { toast('Bruttobetrag fehlt.', 'warn'); return; }
-    Object.assign(b, { wohnungId:$('bWohnung').value, kategorie:$('bKategorie').value, datum:$('bDatum').value, haendler:$('bHaendler').value.trim(), brutto, mwst:parseBetrag($('bMwst').value), bemerkung:$('bBemerkung').value.trim(), geaendert:nowIso() });
+    Object.assign(b, { wohnungId:$('bWohnung').value, kategorie:$('bKategorie').value, datum:$('bDatum').value, haendler:$('bHaendler').value.trim(), brutto, mwst:parseBetrag($('bMwst').value), belegnummer:$('bBelegNr').value.trim(), bemerkung:$('bBemerkung').value.trim(), geaendert:nowIso() });
     DB.save(); $('dlgBeleg').close(); this.renderBelege(); this.renderDashboard(); toast('Beleg aktualisiert.', 'ok');
   },
   async deleteBeleg(){
