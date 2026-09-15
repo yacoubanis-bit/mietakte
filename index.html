@@ -359,6 +359,28 @@
   @keyframes swPhone{0%,45%{opacity:.4; transform:none} 70%,100%{opacity:1; transform:scale(1.06); filter:drop-shadow(0 0 10px rgba(251,191,36,.55))}}
   @keyframes swBeam{0%{transform:translateY(0); opacity:0} 30%{opacity:1} 100%{transform:translateY(16px); opacity:0}}
   @keyframes swBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+  /* Sende-Variante: Beleg wandert vom Gerät in die Wolke */
+  #switchNote.send .cloud{animation:swCloudIn 1.6s ease-in-out infinite}
+  #switchNote.send .cloud .x{display:none}
+  #switchNote.send .phone{animation:none; opacity:1}
+  #switchNote.send .arrow i{animation:swDotUp 1.1s linear infinite; background:var(--accent2); box-shadow:0 0 8px var(--accent2)}
+  #switchNote.send .phone .beam{animation:swBeamUp 1.1s ease-in-out infinite}
+  #switchNote.send .anim{flex-direction:row-reverse}
+  #switchNote.send h3{background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent}
+  #switchNote.send .sendbar{height:3px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:16px; position:relative}
+  #switchNote.send .sendbar::after{content:''; position:absolute; top:0; bottom:0; width:40%; border-radius:999px; background:linear-gradient(90deg,transparent,var(--accent2),transparent); animation:swSlide 1.2s ease-in-out infinite}
+  #switchNote.ok .cloud{stroke:var(--green); animation:none; opacity:1; transform:none; filter:drop-shadow(0 0 10px rgba(52,211,153,.6))}
+  #switchNote.ok .cloud .ok{display:block}
+  #switchNote .cloud .ok{display:none; stroke:var(--green); stroke-width:2.6; stroke-dasharray:24; animation:swX 1s ease forwards}
+  @keyframes swCloudIn{0%,100%{opacity:.55; transform:scale(.96)} 50%{opacity:1; transform:scale(1.04); filter:drop-shadow(0 0 12px rgba(34,211,238,.6))}}
+  @keyframes swDotUp{from{left:36px; opacity:0} 20%{opacity:1} to{left:-10px; opacity:0}}
+  @keyframes swBeamUp{0%{transform:translateY(0); opacity:0} 30%{opacity:1} 100%{transform:translateY(-16px); opacity:0}}
+  @keyframes swSlide{from{left:-40%}to{left:100%}}
+  .costline{display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 11px; border-radius:10px; border:1px solid rgba(34,211,238,.22); background:rgba(34,211,238,.06); font-size:12px; color:var(--muted); flex-wrap:wrap}
+  .costline b{font-family:var(--mono); color:var(--fg)}
+  .costline .rest{margin-left:auto}
+  .costline .rest b{color:var(--green)}
+  .costline .rest.low b{color:var(--amber)} .costline .rest.empty b{color:var(--red)}
   @media (prefers-reduced-motion:reduce){ #switchNote *{animation-duration:.01ms !important; animation-iteration-count:1 !important} }
 
   /* ===== Auswahlfelder mit eigenem Fenster (Wohnung, Kategorie, Datum) ===== */
@@ -665,6 +687,7 @@
         <button id="btnCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Foto aufnehmen</span></button>
         <button id="btnFile"><svg viewBox="0 0 24 24"><path d="M4 20h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-8l-2-2H4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1z"/><path d="M12 11v6M9 14h6"/></svg><span>Datei wählen</span></button>
       </div>
+      <div class="costline" id="gptCost" style="display:none"></div>
       <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
       <input type="file" id="filePick" accept="image/*,application/pdf" hidden>
       <div class="preview" id="preview">
@@ -764,6 +787,13 @@
         <label class="f"><span class="lab">Modell</span><input type="text" id="sGptModel" placeholder="gpt-5.6" autocomplete="off" spellcheck="false"></label>
         <button class="narrow" id="btnGptTest" style="align-self:flex-end">Verbindung testen</button>
       </div>
+      <div class="kv" id="gptStats" style="margin-top:12px"></div>
+      <div class="row">
+        <label class="f"><span class="lab">Guthaben-Stand (€) – wie im OpenAI-Konto unter Billing</span><span class="suffix" data-suffix="€"><input type="text" inputmode="decimal" class="money" id="sGptGuthaben" placeholder="z. B. 10,00"></span></label>
+        <label class="f narrow" style="min-width:110px"><span class="lab">Kurs $ → €</span><input type="text" inputmode="decimal" class="money" id="sGptKurs" placeholder="0,92"></label>
+        <button class="narrow ghost" id="btnGptReset" style="align-self:flex-end" title="Verbrauchszähler auf null setzen">Zähler zurücksetzen</button>
+      </div>
+      <div class="hint">OpenAI gibt den Kontostand nicht über den API-Schlüssel heraus. Die App rechnet daher jede Anfrage aus den gemeldeten Tokens und dem Modellpreis in Euro um und summiert. Trägst du den aktuellen Guthaben-Stand aus deinem OpenAI-Konto ein, zeigt die App den geschätzten Rest an.</div>
       <div class="hint">Das Belegfoto wird an die OpenAI-API geschickt; das Modell liest Händler, Datum, Brutto, MwSt und Belegnummer aus und die App füllt die Felder. Der Schlüssel bleibt nur auf diesem Gerät (localStorage). Schlüssel unter <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style="color:var(--accent2)">platform.openai.com/api-keys</a> erzeugen; Abrechnung pro Bild (wenige Cent oder weniger). Ohne Schlüssel oder ohne Internet wird lokal erkannt.</div>
     </div>
 
@@ -918,7 +948,7 @@
 <div id="switchNote" role="alertdialog" aria-live="assertive">
   <div class="box">
     <div class="anim">
-      <svg class="cloud" viewBox="0 0 48 48"><path d="M14 34h21a8 8 0 0 0 1-15.9A11 11 0 0 0 15 16a8.5 8.5 0 0 0-1 18z"/><path class="x" d="M19 22l10 10M29 22L19 32"/></svg>
+      <svg class="cloud" viewBox="0 0 48 48"><path d="M14 34h21a8 8 0 0 0 1-15.9A11 11 0 0 0 15 16a8.5 8.5 0 0 0-1 18z"/><path class="x" d="M19 22l10 10M29 22L19 32"/><path class="ok" d="M17 26l5 5 10-11" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div class="arrow"><i></i><i></i><i></i></div>
       <svg class="phone" viewBox="0 0 48 48"><rect class="scr" x="14" y="5" width="20" height="38" rx="4"/><path d="M21 9h6M24 38h.01"/><path class="beam" d="M19 18h10M19 23h10M19 28h6"/></svg>
     </div>
@@ -927,6 +957,7 @@
     <div class="err" id="swErr"></div>
     <div class="acts" id="swActs"></div>
     <div class="bar" id="swBar"><i></i></div>
+    <div class="sendbar" id="swSend" style="display:none"></div>
   </div>
 </div>
 <div id="toasts"></div>
@@ -943,9 +974,15 @@
    ===================================================================== */
 
 // ---------- Konstanten ----------
-const APP = { name:'MietAkte', version:'1.4.1', build:'15.09.2026 03:10', dbFile:'mietakte-daten.json' };
+const APP = { name:'MietAkte', version:'1.5.0', build:'15.09.2026 05:20', dbFile:'mietakte-daten.json' };
 // Versionshistorie (neueste zuerst) – wird auf der Info-Seite angezeigt
 const CHANGELOG = [
+  { v:'1.5.0', d:'15.09.2026 05:20', p:[
+    'Übertragungsfenster mit Animation, wenn ein Beleg an ChatGPT gesendet wird; kurzes Häkchen bei Erfolg',
+    'ChatGPT-Verbrauch: Kosten je Anfrage aus Tokens und Modellpreis in Euro, Summen gesamt und je Monat, Anzeige unter dem Foto und in den Einstellungen',
+    'Guthaben-Stand eintragbar (aus dem OpenAI-Konto) → geschätztes Restguthaben, Dollarkurs einstellbar, Zähler rücksetzbar',
+    'PDF-Anleitung „Dropbox einrichten & nutzen“ (weißes Blatt) im Projekt',
+  ]},
   { v:'1.4.1', d:'15.09.2026 03:10', p:[
     'Kopfzeile: animiertes Akten-Symbol ganz rechts in voller Höhe des Textblocks, „MietAkte“ über dem Dropbox-Status',
     'Info-Seite: Version und Rechtliches als aufklappbare Knöpfe, Rechtliches mit gelbem Waage-Symbol, SYNIUM-Icon in der Versionsanzeige',
@@ -1014,6 +1051,7 @@ const fmtEUR = new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR'
 const fmtNum = new Intl.NumberFormat('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 });
 function euro(n){ return (n == null || isNaN(n)) ? '–' : fmtEUR.format(n); }
 function num2(n){ return (n == null || isNaN(n)) ? '' : fmtNum.format(n); }
+function fmtCent(eur){ if (eur == null || isNaN(eur)) return '–'; return eur < 0.1 ? (eur * 100).toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' Cent' : euro(eur); }
 function parseBetrag(s){
   if (s == null) return null;
   let t = String(s).trim().replace(/[€\s]/g, '');
@@ -1070,7 +1108,7 @@ function confirmDlg(title, text, okLabel = 'Ja, löschen'){
 // ---------- Datenhaltung ----------
 const DB = {
   data:{ version:1, wohnungen:[], belege:[], geloescht:[], updatedAt:'' },
-  settings:{ dbxAppKey:DEFAULT_DBX_APP_KEY, dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true, erkennung:'auto', gptKey:'', gptModel:'gpt-5.6' },
+  settings:{ dbxAppKey:DEFAULT_DBX_APP_KEY, dbxBase:'/MietAkte', ocrLang:'deu', autoErkennen:true, erkennung:'auto', gptKey:'', gptModel:'gpt-5.6', gptKurs:'0,92', gptStat:null, gptGuthaben:null },
   load(){
     try { const s = JSON.parse(localStorage.getItem(KEY('settings')) || 'null'); if (s) Object.assign(this.settings, s); } catch(e){ console.warn('Einstellungen laden:', e); }
     if (!this.settings.dbxAppKey && DEFAULT_DBX_APP_KEY) this.settings.dbxAppKey = DEFAULT_DBX_APP_KEY;
@@ -1367,7 +1405,29 @@ function enhanceForOcr(cv){
 }
 
 // ---------- Belegerkennung über ChatGPT (OpenAI Responses API, direkt vom Gerät, Schlüssel nur lokal) ----------
+const GPT_PREISE = { 'gpt-6-astra':[10, 50], 'gpt-5.6':[4, 20], 'gpt-5.6-sol':[4, 20], 'gpt-5.6-terra':[2, 12], 'gpt-5.6-luna':[0.2, 1.2] };
 const GPT = {
+  // Verbrauch aus der OpenAI-Antwort berechnen und fortschreiben
+  kosten(model, usage){
+    const pr = GPT_PREISE[model] || GPT_PREISE[String(model).replace(/-\d{4}-\d{2}-\d{2}$/, '')] || null;
+    const inT = (usage && usage.input_tokens) || 0, outT = (usage && usage.output_tokens) || 0;
+    const usd = pr ? (inT * pr[0] + outT * pr[1]) / 1e6 : null;
+    const st = DB.settings.gptStat || (DB.settings.gptStat = { usd:0, anzahl:0, tokens:0, monate:{} });
+    const mon = new Date().toISOString().slice(0, 7);
+    st.anzahl++; st.tokens += inT + outT;
+    if (usd != null) { st.usd += usd; st.monate[mon] = (st.monate[mon] || 0) + usd; }
+    st.letzte = { usd, inT, outT, model, at:nowIso(), unbekannt: pr == null };
+    DB.saveSettings();
+    return st.letzte;
+  },
+  kurs(){ const k = parseBetrag(DB.settings.gptKurs); return k && k > 0 ? k : 0.92; },
+  eur(usd){ return usd == null ? null : usd * this.kurs(); },
+  // Geschätztes Restguthaben: eingetragener Stand minus Verbrauch seit dem Eintrag
+  rest(){
+    const g = DB.settings.gptGuthaben; if (!g || g.eur == null) return null;
+    const st = DB.settings.gptStat || { usd:0 };
+    return g.eur - this.eur(st.usd - (g.usdBei || 0));
+  },
   schema:{
     type:'object', additionalProperties:false,
     properties:{
@@ -1434,6 +1494,7 @@ Rate nicht: Unleserliches als null zurückgeben und im Hinweis nennen.`,
     let out;
     try { out = JSON.parse(this.outputText(j)); } catch(e){ throw new Error('OpenAI: Antwort nicht lesbar.'); }
     out.datum = out.datum || ''; out.belegnummer = out.belegnummer || ''; out.engine = 'ChatGPT';
+    out.kosten = this.kosten(j.model || DB.settings.gptModel, j.usage);
     return out;
   },
   async test(){
@@ -1973,6 +2034,9 @@ const UI = {
     $('sGptKey').onchange = () => { DB.settings.gptKey = $('sGptKey').value.trim(); DB.saveSettings(); this.renderStatus(); };
     $('sGptModel').onchange = () => { DB.settings.gptModel = $('sGptModel').value.trim() || 'gpt-5.6'; DB.saveSettings(); this.renderSettings(); };
     $('btnGptKeyToggle').onclick = () => { const i = $('sGptKey'); i.type = i.type === 'password' ? 'text' : 'password'; };
+    $('sGptGuthaben').onchange = () => { const v = parseBetrag($('sGptGuthaben').value); const st = DB.settings.gptStat || { usd:0 }; DB.settings.gptGuthaben = v == null ? null : { eur:v, usdBei:st.usd, at:nowIso() }; DB.saveSettings(); this.renderSettings(); this.renderCost(); };
+    $('sGptKurs').onchange = () => { const k = parseBetrag($('sGptKurs').value); DB.settings.gptKurs = k && k > 0 ? num2(k) : '0,92'; DB.saveSettings(); this.renderSettings(); this.renderCost(); };
+    $('btnGptReset').onclick = async () => { if (!await confirmDlg('Verbrauchszähler zurücksetzen?', 'Die Summen der ChatGPT-Anfragen werden auf null gesetzt. Der eingetragene Guthaben-Stand bleibt und zählt ab jetzt.', 'Zurücksetzen')) return; const g = DB.settings.gptGuthaben; DB.settings.gptStat = { usd:0, anzahl:0, tokens:0, monate:{} }; if (g) g.usdBei = 0; DB.saveSettings(); this.renderSettings(); this.renderCost(); };
     $('btnGptTest').onclick = async () => {
       DB.settings.gptKey = $('sGptKey').value.trim(); DB.settings.gptModel = $('sGptModel').value.trim() || 'gpt-5.6'; DB.saveSettings();
       const t = toast('Teste Verbindung zu OpenAI …', '', 0);
@@ -2069,6 +2133,32 @@ const UI = {
       el.classList.remove('hide'); el.classList.add('show');
     });
   },
+  // Übertragungsfenster: Beleg geht an ChatGPT (Animation Gerät → Wolke); hideSending(true) zeigt kurz das Häkchen
+  showSending(){
+    const el = $('switchNote');
+    clearTimeout(this._swT); el.classList.remove('hide', 'ok'); el.classList.add('send');
+    $('swTitle').textContent = 'Beleg wird an ChatGPT übertragen'; $('swText').textContent = 'Das Foto wird gesendet und ausgewertet – einen Moment bitte.';
+    $('swErr').textContent = DB.settings.gptModel || ''; $('swActs').innerHTML = ''; $('swBar').style.display = 'none'; $('swSend').style.display = '';
+    el.classList.add('show');
+  },
+  hideSending(ok){
+    const el = $('switchNote');
+    return new Promise(res => {
+      const finish = () => { el.classList.remove('show', 'hide', 'send', 'ok'); $('swSend').style.display = 'none'; res(); };
+      if (!ok) { finish(); return; }                       // sofort weg, damit ein folgendes Hinweisfenster sauber startet
+      el.classList.add('ok'); $('swTitle').textContent = 'Beleg erkannt'; $('swText').textContent = 'Die Werte werden eingetragen.';
+      this._swT = setTimeout(() => { el.classList.add('hide'); setTimeout(finish, 320); }, 700);
+    });
+  },
+  renderCost(){
+    const el = $('gptCost'); const st = DB.settings.gptStat; const key = !!(DB.settings.gptKey || '').trim();
+    if (!key || (DB.settings.erkennung || 'auto') === 'lokal') { el.style.display = 'none'; return; }
+    const ges = st ? GPT.eur(st.usd) : 0; const rest = GPT.rest();
+    const mon = new Date().toISOString().slice(0, 7); const monEur = st && st.monate ? GPT.eur(st.monate[mon] || 0) : 0;
+    let html = `<span>ChatGPT-Verbrauch: <b>${fmtCent(ges)}</b> gesamt · <b>${fmtCent(monEur)}</b> diesen Monat · ${st ? st.anzahl : 0} Anfragen</span>`;
+    if (rest != null) html += `<span class="rest${rest <= 0 ? ' empty' : rest < 2 ? ' low' : ''}">Guthaben ca. <b>${euro(rest)}</b></span>`;
+    el.innerHTML = html; el.style.display = '';
+  },
   erkennungsModus(){ // { cls, text } für die Anzeige
     const m = DB.settings.erkennung || 'auto', key = !!(DB.settings.gptKey || '').trim(), on = navigator.onLine;
     if (m === 'lokal') return { cls:'lokal', text:'Erkennung: lokal', title:'Nur lokale Texterkennung (Einstellungen)' };
@@ -2079,6 +2169,7 @@ const UI = {
   renderStatus(){
     const em = this.erkennungsModus();
     { const e = $('erkPill2'); e.className = 'pill erk ' + em.cls; e.textContent = em.text; e.title = em.title; }
+    this.renderCost();
     const dot = $('dot'), pill = $('syncText');
     const pending = DB.data.belege.filter(b => b.status !== 'ok').length;
     if (!navigator.onLine) { dot.className = 'statusdot err'; pill.textContent = 'Offline'; }
@@ -2224,6 +2315,14 @@ const UI = {
     const s = DB.settings;
     $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sDbxKeyNote').textContent = DEFAULT_DBX_APP_KEY && s.dbxAppKey === DEFAULT_DBX_APP_KEY ? '(voreingestellt)' : ''; $('sOcrLang').value = s.ocrLang || 'deu'; $('sAuto').value = s.autoErkennen ? '1' : '0';
     $('sErkennung').value = s.erkennung || 'auto'; $('sGptKey').value = s.gptKey || ''; $('sGptModel').value = s.gptModel || 'gpt-5.6';
+    $('sGptKurs').value = s.gptKurs || '0,92'; $('sGptGuthaben').value = s.gptGuthaben && s.gptGuthaben.eur != null ? num2(s.gptGuthaben.eur) : '';
+    { const st = s.gptStat || { usd:0, anzahl:0, tokens:0, monate:{} }; const mon = new Date().toISOString().slice(0, 7); const rest = GPT.rest();
+      const pr = GPT_PREISE[s.gptModel] ; const preis = pr ? `${pr[0]} $ / ${pr[1]} $ je 1 Mio. Tokens` : 'unbekannt – Verbrauch wird nur in Tokens gezählt';
+      $('gptStats').innerHTML = `<div class="k">Verbrauch gesamt</div><div class="v">${fmtCent(GPT.eur(st.usd))} · ${st.anzahl} Anfragen · ${st.tokens.toLocaleString('de-DE')} Tokens</div>
+        <div class="k">Diesen Monat</div><div class="v">${fmtCent(GPT.eur((st.monate || {})[mon] || 0))}</div>
+        <div class="k">Letzte Anfrage</div><div class="v">${st.letzte ? fmtCent(GPT.eur(st.letzte.usd)) + ' · ' + new Date(st.letzte.at).toLocaleString('de-DE') : '–'}</div>
+        <div class="k">Preis Modell</div><div class="v">${esc(preis)}</div>
+        <div class="k">Guthaben ca.</div><div class="v">${rest != null ? euro(rest) + (s.gptGuthaben ? ' (Stand eingetragen am ' + new Date(s.gptGuthaben.at).toLocaleDateString('de-DE') + ')' : '') : 'Guthaben-Stand eintragen'}</div>`; }
     Picker.syncAll();
     if (!OCR.loading) $('ocrState').innerHTML = OCR.ready() ? '<span class="statusdot on"></span> Erkennungsmodul geladen (' + esc(OCR.lang) + ').' : (typeof Tesseract === 'undefined' ? '<span class="statusdot err"></span> Erkennungsmodul nicht verfügbar (Internetverbindung für den ersten Start nötig).' : '<span class="statusdot"></span> Erkennungsmodul wird beim ersten Beleg geladen.');
     $('redirectUri').textContent = Dropbox.redirectUri();
@@ -2268,7 +2367,9 @@ const UI = {
       if (mode !== 'lokal') {
         try {
           if (!DB.settings.gptKey) throw new Error('Kein OpenAI-API-Key hinterlegt (Einstellungen).');
-          r = await GPT.erkennen(this.current, prog);
+          this.showSending();
+          try { r = await GPT.erkennen(this.current, prog); } catch(e2){ await this.hideSending(false); throw e2; }
+          await this.hideSending(true); this.renderCost();
         } catch(e){
           gptFehler = e.message;
           if (mode === 'chatgpt') {
@@ -2299,6 +2400,7 @@ const UI = {
       const conf = r.confidence != null ? ', Textqualität ' + Math.round(r.confidence) + ' %' : '';
       parts.push(`${r.engine === 'ChatGPT' ? 'ChatGPT' : 'Lokal'} erkannt (${({ hoch:'hohe', mittel:'mittlere', niedrig:'geringe' })[r.zuversicht] || 'unbekannte'} Sicherheit${r.mwst_satz ? ', ' + r.mwst_satz + ' % MwSt' : ''}${conf}).`);
       if (r.hinweis) parts.push(r.hinweis);
+      if (r.kosten) parts.push(r.kosten.usd != null ? `Kosten dieser Anfrage: ${fmtCent(GPT.eur(r.kosten.usd))} (${r.kosten.inT + r.kosten.outT} Tokens).` : `Tokens: ${r.kosten.inT + r.kosten.outT} (Preis für „${r.kosten.model}“ unbekannt).`);
       if (r.waehrung && r.waehrung !== 'EUR') parts.push('Achtung: Währung ' + r.waehrung + '.');
       if (gptFehler) parts.push('ChatGPT nicht verfügbar (' + gptFehler + ') – lokal erkannt.');
       if (r.brutto == null) parts.push('Betrag bitte eintragen.');

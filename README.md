@@ -53,6 +53,14 @@ Die Anmeldung bleibt über ein Refresh-Token dauerhaft bestehen (OAuth 2 mit PKC
    Händler, Datum, Brutto, MwSt und Belegnummer aus, die App füllt die Felder. Ohne Internet
    oder bei einem Fehler springt automatisch die lokale Texterkennung ein.
 
+4. **Verbrauch und Guthaben**: Beim Senden erscheint ein Übertragungsfenster mit Animation. Jede
+   Anfrage wird aus den von OpenAI gemeldeten Tokens und dem Modellpreis in Euro berechnet und
+   summiert (Anzeige unter dem Foto und in den Einstellungen). OpenAI gibt den Kontostand nicht
+   über den API-Schlüssel heraus; trägst du den Stand aus deinem OpenAI-Konto (Billing) ein,
+   zeigt die App das geschätzte Restguthaben. Dollarkurs einstellbar, Zähler rücksetzbar.
+   Empfohlenes Modell für Belege: `gpt-5.6-terra` (ca. 0,5 Cent je Beleg); `gpt-5.6` bei
+   schwierigen Belegen.
+
 Der Schlüssel liegt nur im Browser dieses Geräts (localStorage) und wird direkt an
 `api.openai.com` gesendet. Die App ist für **eine Person** gedacht – wer den Schlüssel in eine
 öffentlich verteilte App legt, gibt ihn allen Nutzern preis. Hinweis: Bei einem ungültigen
