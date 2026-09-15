@@ -46,7 +46,7 @@
   /* ===== Header ===== */
   header{
     display:flex; align-items:center; gap:14px;
-    padding:calc(8px + var(--sat)) 16px 8px; flex:none;
+    padding:calc(8px + var(--sat)) 14px 8px; flex:none;
     background:rgba(11,16,32,.55); backdrop-filter:blur(14px) saturate(140%);
     -webkit-backdrop-filter:blur(14px) saturate(140%);
     border-bottom:1px solid var(--border); z-index:5;
@@ -54,8 +54,9 @@
   header .spacer{flex:1}
   header .logo{height:52px; width:auto; display:block; border-radius:9px; flex:none}
   header .logo-ph{height:52px; padding:0 14px; display:flex; align-items:center; border:1px dashed var(--border2); border-radius:9px; font-size:11px; color:var(--faint); letter-spacing:2px}
-  header .brand{display:flex; flex-direction:column; align-items:flex-end; gap:5px; min-width:0}
-  header .status{display:flex; align-items:center; gap:7px; padding-right:2px}
+  header .brand{display:flex; align-items:stretch; gap:10px; min-width:0}
+  header .brand-text{display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; gap:5px; min-width:0}
+  header .status{display:flex; align-items:center; gap:7px}
   header .pill{padding:3px 10px; font-size:10.5px}
   .pill.erk,.pill.sync{display:inline-flex; align-items:center; gap:5px}
   .pill.sync .statusdot{width:7px; height:7px}
@@ -68,15 +69,15 @@
   .pill.erk.gpt::before{background:var(--accent2); box-shadow:0 0 6px var(--accent2)}
   .pill.erk.lokal{color:#fde68a; border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.1)}
   .pill.erk.lokal::before{background:var(--amber)}
-  header .title{display:flex; align-items:center; gap:11px; min-width:0}
+
   header h1{
     margin:0; font-size:26px; font-weight:800; letter-spacing:.8px; text-align:right; line-height:1;
     background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent;
     white-space:nowrap;
   }
   /* Animiertes Akten-Symbol: Beleg gleitet aus der Mappe und zurück, Häkchen blinkt auf */
-  .appicon{display:block; width:40px; height:40px; flex:none}
-  .appicon svg{width:100%; height:100%; overflow:visible}
+  .appicon{display:block; position:relative; flex:none; width:42px; height:42px; align-self:center}   /* Größe wird per Skript an die Höhe des Textblocks angepasst */
+  .appicon svg{position:absolute; inset:0; width:100%; height:100%; overflow:visible; display:block}
   .appicon .paper{animation:akteSlip 4.2s ease-in-out infinite; transform-origin:center}
   .appicon .tick{stroke-dasharray:8; stroke-dashoffset:8; animation:akteTick 4.2s ease-in-out infinite}
   .appicon .folder{animation:akteGlowPulse 4.2s ease-in-out infinite}
@@ -93,15 +94,14 @@
     font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);
     border-radius:999px;padding:5px 11px;white-space:nowrap; font-weight:600; letter-spacing:.3px;
   }
-  @media (max-width:480px){ header{gap:8px; padding-left:10px; padding-right:10px} header .logo{height:40px} header h1{font-size:20px} .appicon{width:30px; height:30px} header .brand{gap:4px; max-width:calc(100vw - 150px)} header .pill{font-size:9.5px; padding:2px 7px; letter-spacing:.1px} header .status{gap:5px; flex-wrap:wrap; justify-content:flex-end; row-gap:3px} }
+  @media (max-width:480px){ header{gap:8px; padding-left:14px; padding-right:14px} header .logo{height:40px} header h1{font-size:20px} header .brand{gap:7px; max-width:calc(100vw - 150px)} header .brand-text{gap:4px} header .pill{font-size:9.5px; padding:2px 7px; letter-spacing:.1px} header .status{gap:5px; flex-wrap:wrap; justify-content:flex-end; row-gap:3px} }
 
   /* ===== Desktop: ab 1100 px linke Navigationsleiste, mehrspaltige Ansichten ===== */
   @media (min-width:1100px){
     body{display:grid; grid-template-rows:auto 1fr; grid-template-columns:112px 1fr}
-    header{grid-column:1/3; padding:10px 28px}
+    header{grid-column:1/3; padding:10px 32px}
     header .logo{height:56px}
     header h1{font-size:30px}
-    .appicon{width:46px; height:46px}
     body nav.tabbar{
       position:static; grid-row:2; grid-column:1; flex-direction:column; justify-content:flex-start; gap:8px;
       padding:18px 10px; border-top:none; border-right:1px solid var(--border);
@@ -136,7 +136,6 @@
     body{font-size:14.5px}
     header h1{font-size:34px}
     header .logo{height:62px}
-    .appicon{width:52px; height:52px}
     main .view{max-width:2100px}
     #view-belege.active{grid-template-columns:minmax(380px,460px) 1fr}
     #view-einstellungen.active{grid-template-columns:1fr 1fr 1fr}
@@ -473,13 +472,28 @@
   #viewer .vzoom .pct{display:flex; align-items:center; padding:0 8px; font-family:var(--mono); font-size:12.5px; color:var(--accent2); min-width:58px; justify-content:center}
   #viewer .vload{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); gap:10px; font-size:13px}
 
-  /* ===== Info ===== */
-  .ver{display:flex; align-items:center; gap:14px}
-  .ver .vico{width:54px; height:54px; border-radius:14px; overflow:hidden; flex:none; box-shadow:0 0 18px rgba(34,211,238,.35)}
-  .ver .vico img{width:100%; height:100%; display:block}
-  .ver .vn{font-size:20px; font-weight:800; letter-spacing:.4px; background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent}
-  .ver .vv{font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-top:2px}
-  .ver .vv b{color:var(--fg)}
+  /* ===== Info: aufklappbare Knöpfe ===== */
+  .acc{width:100%; display:flex; align-items:center; gap:12px; text-align:left; justify-content:flex-start; padding:10px 12px; border-radius:14px; min-height:64px; background:var(--surface2)}
+  .acc .acc-ico{width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex:none; overflow:hidden}
+  .acc .ver-ico{background:#000; box-shadow:0 0 16px rgba(34,211,238,.4); animation:icGlow 2.6s ease-in-out infinite}
+  .acc .ver-ico img{width:100%; height:100%; display:block}
+  .acc .legal-ico{background:linear-gradient(135deg,#f59e0b,#fbbf24); box-shadow:0 0 16px rgba(251,191,36,.45); animation:legalGlow 2.6s ease-in-out infinite}
+  .acc .legal-ico svg{width:26px; height:26px; stroke:#1a1300; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  @keyframes legalGlow{0%,100%{box-shadow:0 0 10px rgba(251,191,36,.35)} 50%{box-shadow:0 0 24px rgba(251,191,36,.8), 0 0 40px rgba(245,158,11,.35)}}
+  .acc .acc-t{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+  .acc .acc-t b{font-size:15px; font-weight:800; letter-spacing:.3px; background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .acc#accLegal .acc-t b{background:linear-gradient(135deg,#fde68a,#fbbf24); -webkit-background-clip:text; background-clip:text; white-space:normal}
+  .acc .acc-t span{font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .acc .acc-t span b{font-size:12px; color:var(--fg); background:none; -webkit-text-fill-color:var(--fg); letter-spacing:0}
+  .acc .acc-t small{font-size:11px; color:var(--faint)}
+  .acc .acc-chev{width:18px; height:18px; stroke:var(--muted); fill:none; stroke-width:2.5; stroke-linecap:round; flex:none; transition:transform .25s}
+  .acc[aria-expanded="true"] .acc-chev{transform:rotate(180deg)}
+  .acc[aria-expanded="true"]{border-color:rgba(99,102,241,.45)}
+  .acc#accLegal[aria-expanded="true"]{border-color:rgba(251,191,36,.5)}
+  .acc-body{display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s ease}
+  .acc-body.open{grid-template-rows:1fr}
+  .acc-body > .acc-inner{overflow:hidden}
+  .acc-body.open > .acc-inner{padding-top:10px}
   .rel{border-left:2px solid var(--border2); padding:2px 0 2px 14px; margin-top:12px; position:relative}
   .rel::before{content:''; position:absolute; left:-6px; top:8px; width:10px; height:10px; border-radius:50%; background:var(--faint)}
   .rel.cur{border-left-color:var(--accent2)}
@@ -490,7 +504,7 @@
   .rel .rh .chip{margin-left:auto}
   .rel ul{margin:6px 0 0; padding-left:18px; font-size:12.5px; line-height:1.55; color:var(--fg); text-align:left}
   .rel li{margin:2px 0}
-  .legal{font-size:12.5px; line-height:1.6; color:var(--fg); text-align:left}
+  .legal{font-size:12.5px; line-height:1.6; color:var(--fg); text-align:left; padding:0 4px}
   .legal h4{margin:12px 0 4px; font-size:12.5px; font-weight:750; color:#cdd5ff}
   .legal p{margin:0 0 6px}
   .legal .cp{margin-top:12px; padding-top:10px; border-top:1px solid var(--border); color:var(--muted); font-size:11.5px}
@@ -578,7 +592,10 @@
   <img class="logo" id="hdrLogo" src="Logo/SYNIUM_Logo_horizontal_V3_rounded_corners.png" alt="SYNIUM">
   <div class="spacer"></div>
   <div class="brand">
-  <div class="title">
+    <div class="brand-text">
+      <h1>MietAkte</h1>
+      <div class="status"><span class="pill sync" id="syncPill"><span class="statusdot" id="dot"></span><span id="syncText">Offline</span></span></div>
+    </div>
     <span class="appicon" aria-hidden="true">
       <svg viewBox="0 0 40 40">
         <defs>
@@ -594,9 +611,6 @@
         <path d="M8 24.5h13" stroke="rgba(255,255,255,.35)" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
     </span>
-    <h1>MietAkte</h1>
-  </div>
-  <div class="status"><span class="pill sync" id="syncPill"><span class="statusdot" id="dot"></span><span id="syncText">Offline</span></span></div>
   </div>
 </header>
 
@@ -793,16 +807,22 @@
   <section class="view" id="view-info">
     <div class="card">
       <h2>Version</h2>
-      <div class="ver"><div class="vico"><img src="icons/icon-192.png" alt="" onerror="this.parentNode.style.display='none'"></div><div><div class="vn">MietAkte</div><div class="vv" id="infoVersion"></div></div></div>
-      <div class="hint">Belegverwaltung für vermietete Wohnungen · SYNIUM · Stand der installierten Fassung. Ein Neuladen der Seite holt die jeweils aktuelle Version.</div>
+      <button type="button" class="acc" id="accVersion" aria-expanded="false">
+        <span class="acc-ico ver-ico"><img src="icons/SYNIUM.ico?v=1.4.0" alt="" onerror="this.style.display='none'"></span>
+        <span class="acc-t"><b>MietAkte</b><span id="infoVersion"></span><small>Tippen für „Was ist neu“</small></span>
+        <svg class="acc-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body" id="accVersionBody"><div class="acc-inner" id="infoChangelog"></div></div>
     </div>
     <div class="card">
-      <h2>Was ist neu</h2>
-      <div id="infoChangelog"></div>
-    </div>
-    <div class="card" style="grid-column:1/-1">
-      <h2>Rechtliche Hinweise / Nutzungsbedingungen</h2>
-      <div class="legal" id="infoLegal"></div>
+      <h2>Rechtliches</h2>
+      <button type="button" class="acc" id="accLegal" aria-expanded="false">
+        <span class="acc-ico legal-ico"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M7 21h10"/><path d="M5 7l-3 7a3.5 3.5 0 0 0 7 0L6 7M19 7l-3 7a3.5 3.5 0 0 0 7 0l-3-7"/></svg></span>
+        <span class="acc-t"><b>Rechtliche Hinweise / Nutzungsbedingungen</b><small>Urheberrecht, Nutzungsrecht, Weitergabeverbot, Haftung, Daten</small></span>
+        <svg class="acc-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body" id="accLegalBody"><div class="acc-inner legal" id="infoLegal"></div></div>
+      <div class="hint">© 2026 SYNIUM – Anis El Aoud · Belegverwaltung für vermietete Wohnungen · Ein Neuladen der Seite holt die jeweils aktuelle Version.</div>
     </div>
   </section>
 </main>
@@ -923,9 +943,13 @@
    ===================================================================== */
 
 // ---------- Konstanten ----------
-const APP = { name:'MietAkte', version:'1.4.0', build:'15.09.2026 02:45', dbFile:'mietakte-daten.json' };
+const APP = { name:'MietAkte', version:'1.4.1', build:'15.09.2026 03:10', dbFile:'mietakte-daten.json' };
 // Versionshistorie (neueste zuerst) – wird auf der Info-Seite angezeigt
 const CHANGELOG = [
+  { v:'1.4.1', d:'15.09.2026 03:10', p:[
+    'Kopfzeile: animiertes Akten-Symbol ganz rechts in voller Höhe des Textblocks, „MietAkte“ über dem Dropbox-Status',
+    'Info-Seite: Version und Rechtliches als aufklappbare Knöpfe, Rechtliches mit gelbem Waage-Symbol, SYNIUM-Icon in der Versionsanzeige',
+  ]},
   { v:'1.4.0', d:'15.09.2026 02:45', p:[
     'Belegbild im Bearbeiten-Dialog, mit Vollbild-Betrachter: Zoomen (Finger, Mausrad, Tasten), Verschieben, Anzeige in gespeicherter Auflösung',
     'Neuer Reiter „Info“ mit Version, Änderungsverlauf und rechtlichen Hinweisen',
@@ -1991,6 +2015,10 @@ const UI = {
       catch(err){ toast('Wiederherstellung fehlgeschlagen: ' + err.message, 'err'); }
     };
     Picker.init(); Viewer.init();
+    // Akten-Symbol exakt so hoch wie der Textblock „MietAkte + Status“
+    const sizeIcon = () => { const t = document.querySelector('header .brand-text'), i = document.querySelector('.appicon'); if (t && i) { const h = Math.round(t.getBoundingClientRect().height); i.style.width = h + 'px'; i.style.height = h + 'px'; } };
+    sizeIcon(); window.addEventListener('resize', sizeIcon); if (document.fonts && document.fonts.ready) document.fonts.ready.then(sizeIcon);
+    this.sizeIcon = sizeIcon;
     // Splash
     const splash = $('splash');
     const hide = () => splash.classList.add('hide');
@@ -2060,6 +2088,7 @@ const UI = {
     else if (pending) { dot.className = 'statusdot busy'; pill.textContent = pending + ' ausstehend'; }
     else { dot.className = 'statusdot on'; pill.textContent = 'Dropbox verbunden'; }
     $('syncPill').className = 'pill sync ' + (dot.className.replace('statusdot', '').trim());
+    if (this.sizeIcon) this.sizeIcon();
     $('btnRetryAll').style.display = pending ? '' : 'none';
   },
   fillSelects(){
@@ -2166,6 +2195,12 @@ const UI = {
   },
   renderInfo(){
     $('infoVersion').innerHTML = `Version <b>${esc(APP.version)}</b> · Stand <b>${esc(APP.build)}</b>`;
+    if (!this._accInit) {
+      this._accInit = true;
+      const toggle = (btnId, bodyId) => { const b = $(btnId), body = $(bodyId); const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', open ? 'true' : 'false'); body.classList.toggle('open', open); };
+      $('accVersion').onclick = () => toggle('accVersion', 'accVersionBody');
+      $('accLegal').onclick = () => toggle('accLegal', 'accLegalBody');
+    }
     $('infoChangelog').innerHTML = CHANGELOG.map((r, i) => `<div class="rel${i === 0 ? ' cur' : ''}"><div class="rh"><b>Version ${esc(r.v)}</b><span>${esc(r.d)}</span>${i === 0 ? '<span class="chip ok">aktuell</span>' : ''}</div><ul>${r.p.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div>`).join('');
     $('infoLegal').innerHTML = LEGAL;
   },
