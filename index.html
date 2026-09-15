@@ -560,8 +560,8 @@
     <div class="card filters">
       <h2>Übersicht nach Steuerjahr</h2>
       <div class="row">
-        <label class="f"><span class="lab">Wohnung</span><select id="dWohnung"><option value="">Alle Wohnungen</option></select></label>
-        <label class="f narrow" style="min-width:140px"><span class="lab">Kategorie</span><select id="dKategorie"><option value="">Alle Kategorien</option></select></label>
+        <label class="f"><span class="lab">Wohnung</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="dWohnung" data-kind="wohnung" data-title="Wohnung filtern" data-allow-empty="1"></button><select id="dWohnung"><option value="">Alle Wohnungen</option></select></div></label>
+        <label class="f"><span class="lab">Kategorie</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="dKategorie" data-kind="kategorie" data-title="Kategorie filtern" data-allow-empty="1"></button><select id="dKategorie"><option value="">Alle Kategorien</option></select></div></label>
       </div>
     </div>
     <div id="dashYears" style="display:contents"></div>
@@ -572,13 +572,13 @@
     <div class="card filters">
       <h2>Filter</h2>
       <div class="row">
-        <label class="f"><span class="lab">Wohnung</span><select id="fWohnung"><option value="">Alle Wohnungen</option></select></label>
-        <label class="f"><span class="lab">Kategorie</span><select id="fKategorie"><option value="">Alle Kategorien</option></select></label>
+        <label class="f"><span class="lab">Wohnung</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="fWohnung" data-kind="wohnung" data-title="Wohnung filtern" data-allow-empty="1"></button><select id="fWohnung"><option value="">Alle Wohnungen</option></select></div></label>
+        <label class="f"><span class="lab">Kategorie</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="fKategorie" data-kind="kategorie" data-title="Kategorie filtern" data-allow-empty="1"></button><select id="fKategorie"><option value="">Alle Kategorien</option></select></div></label>
       </div>
       <div class="row">
-        <label class="f"><span class="lab">Von</span><input type="date" id="fVon"></label>
-        <label class="f"><span class="lab">Bis</span><input type="date" id="fBis"></label>
-        <label class="f narrow"><span class="lab">Jahr</span><select id="fJahr"><option value="">–</option></select></label>
+        <label class="f"><span class="lab">Von</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="fVon" data-kind="datum" data-title="Zeitraum – von" data-allow-empty="1"></button><input type="date" id="fVon"></div></label>
+        <label class="f"><span class="lab">Bis</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="fBis" data-kind="datum" data-title="Zeitraum – bis" data-allow-empty="1"></button><input type="date" id="fBis"></div></label>
+        <label class="f"><span class="lab">Jahr</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="fJahr" data-kind="liste" data-title="Steuerjahr" data-icon="cal" data-allow-empty="1"></button><select id="fJahr"><option value="">–</option></select></div></label>
       </div>
       <div class="row">
         <label class="f"><span class="lab">Suche</span><input type="text" id="fSuche" placeholder="Händler, Bemerkung …"></label>
@@ -685,11 +685,11 @@
       <h2>Belegerkennung (ChatGPT)</h2>
       <div class="row">
         <label class="f"><span class="lab">Erkennung</span>
-          <select id="sErkennung">
+          <div class="pickwrap"><button type="button" class="pickbtn" data-pick="sErkennung" data-kind="liste" data-title="Belegerkennung" data-icon="spark"></button><select id="sErkennung">
             <option value="auto">ChatGPT, bei Fehler lokal (empfohlen)</option>
             <option value="chatgpt">Nur ChatGPT</option>
             <option value="lokal">Nur lokal (ohne Internet)</option>
-          </select>
+          </select></div>
         </label>
       </div>
       <div class="keyrow">
@@ -707,13 +707,13 @@
       <h2>Texterkennung lokal (offline, Rückfall)</h2>
       <div class="row">
         <label class="f"><span class="lab">Sprache der Belege</span>
-          <select id="sOcrLang">
+          <div class="pickwrap"><button type="button" class="pickbtn" data-pick="sOcrLang" data-kind="liste" data-title="Sprache der Belege" data-icon="globe"></button><select id="sOcrLang">
             <option value="deu">Deutsch</option>
             <option value="deu+eng">Deutsch + Englisch</option>
-          </select>
+          </select></div>
         </label>
-        <label class="f narrow" style="min-width:150px"><span class="lab">Automatisch erkennen</span>
-          <select id="sAuto"><option value="1">Ja, nach Foto</option><option value="0">Nein, manuell</option></select>
+        <label class="f"><span class="lab">Automatisch erkennen</span>
+          <div class="pickwrap"><button type="button" class="pickbtn" data-pick="sAuto" data-kind="liste" data-title="Automatisch erkennen" data-icon="bolt"></button><select id="sAuto"><option value="1">Ja, nach Foto</option><option value="0">Nein, manuell</option></select></div>
         </label>
       </div>
       <div class="acct" id="ocrState">Erkennungsmodul noch nicht geladen.</div>
@@ -1621,6 +1621,10 @@ const ICONS = {
   right:'<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
   dleft:'<svg viewBox="0 0 24 24"><path d="M18 6l-6 6 6 6M11 6l-6 6 6 6"/></svg>',
   dright:'<svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg>',
+  globe:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+  bolt:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
+  spark:'<svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg>',
+  filter:'<svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>',
 };
 const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const Picker = {
@@ -1631,21 +1635,24 @@ const Picker = {
     $('sheet').addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
     this.syncAll();
   },
-  iconFor(kind, el){
+  iconFor(b, el){
+    const kind = b.dataset.kind;
     if (kind === 'wohnung') return ICONS.home;
     if (kind === 'datum') return ICONS.cal;
+    if (kind === 'liste') return ICONS[b.dataset.icon] || ICONS.tag;
     const k = el && el.value ? kat(el.value).id : ''; return ICONS[k] || ICONS.tag;
   },
-  label(el){
-    if (el.type === 'date') return el.value ? fmtDatum(el.value) : 'Datum wählen';
+  label(el, allowEmpty){
+    if (el.type === 'date') return el.value ? fmtDatum(el.value) : (allowEmpty ? 'Kein Datum' : 'Datum wählen');
     const o = el.options[el.selectedIndex];
     if (o && o.value) return o.textContent;
     return el.options.length && !el.options[0].value ? el.options[0].textContent : 'Bitte wählen';
   },
   sync(id){
     const el = $(id), b = document.querySelector(`.pickbtn[data-pick="${id}"]`); if (!el || !b) return;
-    b.innerHTML = `<span class="pi">${this.iconFor(b.dataset.kind, el)}</span><span class="pl">${esc(this.label(el))}</span>${ICONS.chev}`;
-    b.classList.toggle('empty', !el.value);
+    const allowEmpty = b.dataset.allowEmpty === '1';
+    b.innerHTML = `<span class="pi">${this.iconFor(b, el)}</span><span class="pl">${esc(this.label(el, allowEmpty))}</span>${ICONS.chev}`;
+    b.classList.toggle('empty', !el.value && !allowEmpty);
     b.classList.toggle('erkannt', el.classList.contains('erkannt'));
   },
   syncAll(){ document.querySelectorAll('.pickbtn').forEach(b => this.sync(b.dataset.pick)); },
@@ -1654,17 +1661,19 @@ const Picker = {
     this.current = id;
     const kind = b.dataset.kind, title = b.dataset.title || '';
     const card = $('sheetCard');
-    const head = (sub) => `<div class="sh"><div class="ic">${this.iconFor(kind, kind === 'kategorie' ? null : el)}</div><h3>${esc(title)}${sub ? '<small>' + esc(sub) + '</small>' : ''}</h3><button type="button" class="icon ghost" id="sheetX">✕</button></div>`;
-    if (kind === 'datum') { card.innerHTML = head('Tag antippen'); this.renderCal(el); }
+    const allowEmpty = b.dataset.allowEmpty === '1';
+    const head = (sub) => `<div class="sh"><div class="ic">${this.iconFor(b, kind === 'kategorie' ? null : el)}</div><h3>${esc(title)}${sub ? '<small>' + esc(sub) + '</small>' : ''}</h3><button type="button" class="icon ghost" id="sheetX">✕</button></div>`;
+    if (kind === 'datum') { card.innerHTML = head(allowEmpty ? 'Tag antippen · „Leeren“ hebt die Eingrenzung auf' : 'Tag antippen'); this.renderCal(el); }
     else {
-      const opts = [...el.options].filter(o => o.value);
-      let html = head(kind === 'wohnung' ? 'Mietobjekt für diesen Beleg' : 'Steuerliche Zuordnung');
+      const opts = [...el.options].filter(o => allowEmpty || o.value);
+      let html = head(kind === 'wohnung' ? (allowEmpty ? 'Anzeige eingrenzen' : 'Mietobjekt für diesen Beleg') : kind === 'kategorie' ? (allowEmpty ? 'Anzeige eingrenzen' : 'Steuerliche Zuordnung') : '');
       html += '<div class="opts">';
-      if (!opts.length) html += `<div class="empty-opt">Noch keine Wohnung angelegt – bitte zuerst unter „Wohnungen“ anlegen.</div>`;
+      if (!opts.length) html += `<div class="empty-opt">${kind === 'wohnung' ? 'Noch keine Wohnung angelegt – bitte zuerst unter „Wohnungen“ anlegen.' : 'Keine Auswahl verfügbar.'}</div>`;
       opts.forEach((o, i) => {
-        let icon = ICONS.home, cls = '', sub = '';
-        if (kind === 'wohnung') { const w = DB.wohnung(o.value); sub = w && w.adresse ? w.adresse : ''; }
-        else { const k = kat(o.value); icon = ICONS[k.id] || ICONS.tag; cls = k.cls; sub = { erhaltung:'Reparatur, Renovierung, Instandhaltung', herstellung:'Neuanschaffung, Erweiterung, wesentliche Verbesserung', klein:'Geringwertige Materialien und Kleinteile', sonstiges:'Alles andere' }[k.id] || ''; }
+        let icon = this.iconFor(b, null), cls = '', sub = '';
+        if (kind === 'wohnung') { if (o.value) { const w = DB.wohnung(o.value); sub = w && w.adresse ? w.adresse : ''; } else { icon = ICONS.filter; sub = 'Alle Mietobjekte anzeigen'; } }
+        else if (kind === 'kategorie') { if (o.value) { const k = kat(o.value); icon = ICONS[k.id] || ICONS.tag; cls = k.cls; sub = { erhaltung:'Reparatur, Renovierung, Instandhaltung', herstellung:'Neuanschaffung, Erweiterung, wesentliche Verbesserung', klein:'Geringwertige Materialien und Kleinteile', sonstiges:'Alles andere' }[k.id] || ''; } else { icon = ICONS.filter; sub = 'Alle Kategorien anzeigen'; } }
+        else if (kind === 'liste' && !o.value) { icon = ICONS.filter; }
         html += `<button type="button" class="opt${o.value === el.value ? ' sel' : ''}" data-v="${esc(o.value)}" style="animation-delay:${Math.min(i, 8) * 40}ms"><span class="oi ${cls}">${icon}</span><span class="ot"><b>${esc(o.textContent)}</b>${sub ? '<small>' + esc(sub) + '</small>' : ''}</span><span class="chk">${ICONS.check}</span></button>`;
       });
       html += '</div>';
@@ -1931,6 +1940,7 @@ const UI = {
       el.querySelectorAll('.beleg').forEach(x => x.onclick = () => this.openEdit(x.dataset.id));
     }
     this.renderStatus();
+    Picker.syncAll();
   },
   // ----- Übersicht nach Steuerjahr -----
   renderDashboard(){
@@ -1973,6 +1983,7 @@ const UI = {
     el.innerHTML = html;
     el.querySelectorAll('tr.r').forEach(x => x.onclick = () => this.openEdit(x.dataset.id));
     el.querySelectorAll('[data-xlsx]').forEach(b => b.onclick = () => Export.runYear(b.dataset.xlsx));
+    Picker.syncAll();
   },
   renderWohnungen(){
     const el = $('wohnungList');
@@ -1994,6 +2005,7 @@ const UI = {
     const s = DB.settings;
     $('sDbxKey').value = s.dbxAppKey; $('sDbxBase').value = s.dbxBase; $('sDbxKeyNote').textContent = DEFAULT_DBX_APP_KEY && s.dbxAppKey === DEFAULT_DBX_APP_KEY ? '(voreingestellt)' : ''; $('sOcrLang').value = s.ocrLang || 'deu'; $('sAuto').value = s.autoErkennen ? '1' : '0';
     $('sErkennung').value = s.erkennung || 'auto'; $('sGptKey').value = s.gptKey || ''; $('sGptModel').value = s.gptModel || 'gpt-5.6';
+    Picker.syncAll();
     if (!OCR.loading) $('ocrState').innerHTML = OCR.ready() ? '<span class="statusdot on"></span> Erkennungsmodul geladen (' + esc(OCR.lang) + ').' : (typeof Tesseract === 'undefined' ? '<span class="statusdot err"></span> Erkennungsmodul nicht verfügbar (Internetverbindung für den ersten Start nötig).' : '<span class="statusdot"></span> Erkennungsmodul wird beim ersten Beleg geladen.');
     $('redirectUri').textContent = Dropbox.redirectUri();
     const a = Dropbox.auth;
