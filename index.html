@@ -123,6 +123,7 @@
     #view-dashboard .empty{grid-column:1/3}
     #view-erfassen .preview img{max-height:62vh}
     #view-einstellungen.active{display:grid; grid-template-columns:1fr 1fr; align-items:start}
+    #view-info.active{display:grid; grid-template-columns:1fr 1fr; align-items:start}
     main #view-wohnungen{max-width:1100px; margin:0}
     .beleg{padding:14px 18px}
     .beleg .h{font-size:15px}
@@ -168,6 +169,7 @@
   nav.tabbar button.active svg{stroke:var(--accent2)}
   nav.tabbar button.cta{color:#fff}
   nav.tabbar button.cta svg{width:26px;height:26px}
+  @media (max-width:480px){ nav.tabbar{padding-left:2px; padding-right:2px} nav.tabbar button{font-size:9.5px; padding:6px 1px; gap:2px; letter-spacing:-.1px} nav.tabbar button svg{width:20px;height:20px} nav.tabbar button.cta svg{width:24px;height:24px} }
 
   /* ===== Cards / forms ===== */
   .card{
@@ -447,6 +449,51 @@
   #sheet .cal .cf{display:flex; gap:8px; margin-top:10px}
   #sheet .cal .cf button{flex:1}
   @media (prefers-reduced-motion:reduce){ #sheet *{animation:none !important} }
+
+  /* ===== Belegbild im Bearbeiten-Dialog ===== */
+  .bimg{margin-top:10px; border:1px solid var(--border); border-radius:12px; background:#05070e; overflow:hidden; position:relative; min-height:64px; display:flex; align-items:center; justify-content:center}
+  .bimg img{display:block; width:100%; max-height:220px; object-fit:contain; cursor:zoom-in}
+  .bimg .st{padding:14px; font-size:12.5px; color:var(--muted); text-align:center; line-height:1.5}
+  .bimg .zoomhint{position:absolute; right:8px; bottom:8px; font-size:10.5px; color:#fff; background:rgba(5,7,14,.7); padding:3px 8px; border-radius:999px; pointer-events:none; display:flex; align-items:center; gap:5px}
+  .bimg .zoomhint svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+
+  /* ===== Vollbild-Bildbetrachter (Zoom & Verschieben) ===== */
+  dialog#viewer{border:none; background:#000; padding:0; margin:0; max-width:none; width:100vw; height:100dvh; max-height:none; inset:0; overflow:hidden}
+  dialog#viewer::backdrop{background:#000}
+  #viewer .vstage{position:absolute; inset:0; overflow:hidden; touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none}
+  #viewer .vstage.drag{cursor:grabbing}
+  #viewer .vstage img{position:absolute; left:50%; top:50%; transform-origin:0 0; will-change:transform; max-width:none; -webkit-user-drag:none; user-select:none; pointer-events:none}
+  #viewer .vbar{position:absolute; left:0; right:0; top:0; display:flex; align-items:center; gap:8px; padding:calc(10px + var(--sat)) 12px 10px; background:linear-gradient(rgba(0,0,0,.75),transparent); z-index:2}
+  #viewer .vbar .vt{flex:1; min-width:0; font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 3px #000}
+  #viewer .vbar .vt small{display:block; font-weight:400; color:rgba(255,255,255,.65); font-size:11px}
+  #viewer .vbar button{background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.2); color:#fff; backdrop-filter:blur(6px)}
+  #viewer .vzoom{position:absolute; left:50%; bottom:calc(16px + var(--sab)); translate:-50% 0; display:flex; gap:6px; z-index:2; background:rgba(13,18,34,.85); border:1px solid var(--border2); border-radius:999px; padding:5px; backdrop-filter:blur(8px)}
+  #viewer .vzoom button{min-height:36px; height:36px; padding:0 14px; border-radius:999px; background:transparent; border:none; color:#fff; font-family:var(--mono); font-weight:700}
+  #viewer .vzoom button:hover{background:rgba(255,255,255,.1)}
+  #viewer .vzoom .pct{display:flex; align-items:center; padding:0 8px; font-family:var(--mono); font-size:12.5px; color:var(--accent2); min-width:58px; justify-content:center}
+  #viewer .vload{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); gap:10px; font-size:13px}
+
+  /* ===== Info ===== */
+  .ver{display:flex; align-items:center; gap:14px}
+  .ver .vico{width:54px; height:54px; border-radius:14px; overflow:hidden; flex:none; box-shadow:0 0 18px rgba(34,211,238,.35)}
+  .ver .vico img{width:100%; height:100%; display:block}
+  .ver .vn{font-size:20px; font-weight:800; letter-spacing:.4px; background:var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .ver .vv{font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-top:2px}
+  .ver .vv b{color:var(--fg)}
+  .rel{border-left:2px solid var(--border2); padding:2px 0 2px 14px; margin-top:12px; position:relative}
+  .rel::before{content:''; position:absolute; left:-6px; top:8px; width:10px; height:10px; border-radius:50%; background:var(--faint)}
+  .rel.cur{border-left-color:var(--accent2)}
+  .rel.cur::before{background:var(--accent2); box-shadow:0 0 10px var(--accent2)}
+  .rel .rh{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+  .rel .rh b{font-family:var(--mono); font-size:13.5px}
+  .rel .rh span{font-size:11.5px; color:var(--muted); font-family:var(--mono)}
+  .rel .rh .chip{margin-left:auto}
+  .rel ul{margin:6px 0 0; padding-left:18px; font-size:12.5px; line-height:1.55; color:var(--fg); text-align:left}
+  .rel li{margin:2px 0}
+  .legal{font-size:12.5px; line-height:1.6; color:var(--fg); text-align:left}
+  .legal h4{margin:12px 0 4px; font-size:12.5px; font-weight:750; color:#cdd5ff}
+  .legal p{margin:0 0 6px}
+  .legal .cp{margin-top:12px; padding-top:10px; border-top:1px solid var(--border); color:var(--muted); font-size:11.5px}
 
   /* ===== Toast ===== */
   #toasts{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + var(--sab)); z-index:200; display:flex; flex-direction:column; gap:8px; width:min(92vw,440px); pointer-events:none}
@@ -738,10 +785,26 @@
 
     <div class="card">
       <h2>Info</h2>
-      <div class="hint" style="margin-top:0">MietAkte v1.3 · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Belegerkennung wahlweise über ChatGPT (Schlüssel nur auf diesem Gerät) oder lokal. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
+      <div class="hint" style="margin-top:0">MietAkte · SYNIUM · Belegverwaltung für vermietete Wohnungen. Beträge in €, Datum im Format TT.MM.JJJJ. Belegerkennung wahlweise über ChatGPT (Schlüssel nur auf diesem Gerät) oder lokal. Einzelnutzer-Betrieb; Datenstruktur ist auf spätere Benutzerkonten vorbereitet.</div>
     </div>
   </section>
 
+  <!-- ===== Info ===== -->
+  <section class="view" id="view-info">
+    <div class="card">
+      <h2>Version</h2>
+      <div class="ver"><div class="vico"><img src="icons/icon-192.png" alt="" onerror="this.parentNode.style.display='none'"></div><div><div class="vn">MietAkte</div><div class="vv" id="infoVersion"></div></div></div>
+      <div class="hint">Belegverwaltung für vermietete Wohnungen · SYNIUM · Stand der installierten Fassung. Ein Neuladen der Seite holt die jeweils aktuelle Version.</div>
+    </div>
+    <div class="card">
+      <h2>Was ist neu</h2>
+      <div id="infoChangelog"></div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h2>Rechtliche Hinweise / Nutzungsbedingungen</h2>
+      <div class="legal" id="infoLegal"></div>
+    </div>
+  </section>
 </main>
 
 <nav class="tabbar">
@@ -750,6 +813,7 @@
   <button data-view="erfassen" class="cta active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Erfassen</button>
   <button data-view="wohnungen"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Wohnungen</button>
   <button data-view="einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Einstellungen</button>
+  <button data-view="info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>Info</button>
 </nav>
 
 <!-- ===== Dialog: Wohnung ===== -->
@@ -785,6 +849,7 @@
       </div>
       <div class="row"><label class="f"><span class="lab">Beleg- / Rechnungsnummer</span><input type="text" id="bBelegNr" autocomplete="off"></label></div>
       <div class="row"><label class="f"><span class="lab">Bemerkung</span><textarea id="bBemerkung" rows="2"></textarea></label></div>
+      <div class="bimg" id="bImgWrap"><div class="st">Bild wird geladen …</div></div>
       <div class="kv" id="bInfo"></div>
     </div>
     <div class="dlg-f">
@@ -812,6 +877,14 @@
 
 <!-- ===== Auswahlfenster (Wohnung / Kategorie / Kalender) ===== -->
 <dialog id="sheet"><div class="sc" id="sheetCard"></div></dialog>
+
+<!-- ===== Vollbild-Bildbetrachter ===== -->
+<dialog id="viewer">
+  <div class="vstage" id="vstage"><img id="vimg" alt="Beleg"></div>
+  <div class="vload" id="vload" style="display:none"><span class="spinner"></span>Bild wird geladen …</div>
+  <div class="vbar"><div class="vt" id="vtitle"></div><button type="button" id="vlink" style="display:none">In Dropbox öffnen ↗</button><button type="button" class="icon" id="vclose">✕</button></div>
+  <div class="vzoom"><button type="button" id="vminus">−</button><span class="pct" id="vpct">100 %</span><button type="button" id="vplus">+</button><button type="button" id="vfit">Anpassen</button></div>
+</dialog>
 
 <!-- ===== Dialog: Bestätigung ===== -->
 <dialog id="dlgConfirm">
@@ -850,7 +923,52 @@
    ===================================================================== */
 
 // ---------- Konstanten ----------
-const APP = { name:'MietAkte', version:'1.3', dbFile:'mietakte-daten.json' };
+const APP = { name:'MietAkte', version:'1.4.0', build:'15.09.2026 02:45', dbFile:'mietakte-daten.json' };
+// Versionshistorie (neueste zuerst) – wird auf der Info-Seite angezeigt
+const CHANGELOG = [
+  { v:'1.4.0', d:'15.09.2026 02:45', p:[
+    'Belegbild im Bearbeiten-Dialog, mit Vollbild-Betrachter: Zoomen (Finger, Mausrad, Tasten), Verschieben, Anzeige in gespeicherter Auflösung',
+    'Neuer Reiter „Info“ mit Version, Änderungsverlauf und rechtlichen Hinweisen',
+    'Eigenes Feld „Beleg-/Rechnungsnummer“ – wird erkannt, gespeichert, ist suchbar und steht in der Excel-Datei',
+    'Eigene Auswahlfenster für Wohnung, Kategorie und Datum (Symbole, Leuchtanimation, eigener Kalender) auf allen Seiten',
+    'App startet direkt im Bereich „Erfassen“',
+    'Übersicht nach Steuerjahr: Jahressummen, Kategorien-Summen und Tabelle der Belege (Datum, Händler, Brutto, MwSt)',
+    'Excel je Steuerjahr über alle Wohnungen, Ablage in Dropbox unter „Steuer/Steuer_JJJJ.xlsx“ (wird überschrieben)',
+    'Belege werden je Kaufjahr im Wohnungsordner unter „Steuer JJJJ“ abgelegt',
+    'SYNIUM-Symbol als App-Icon; installierbar auf Android und iPhone',
+  ]},
+  { v:'1.3.0', d:'15.09.2026 00:03', p:[
+    'Belegerkennung über ChatGPT (OpenAI), Schlüssel nur auf dem Gerät; lokale Texterkennung als Rückfall',
+    'Anzeige des Erkennungsmodus und animiertes Hinweisfenster bei ChatGPT-Ausfall',
+  ]},
+  { v:'1.2.0', d:'12.09.2026 18:20', p:[
+    'Dropbox-Anmeldung per Zugangscode (ohne Redirect-URI), verständliche Fehlermeldungen',
+    'Desktop-Layout mit linker Navigation und mehrspaltigen Ansichten; Titel mit animiertem Akten-Symbol',
+    'Kompaktere Schrift und Felder; Web-App-Manifest für die Installation auf dem Handy',
+  ]},
+  { v:'1.1.0', d:'12.09.2026 03:24', p:[
+    'Lokale Texterkennung (Tesseract) mit regelbasierter Auswertung von Summe, MwSt, Datum, Händler',
+  ]},
+  { v:'1.0.0', d:'12.09.2026 02:42', p:[
+    'Erste Fassung: Wohnungen, Belegerfassung mit Kamera, Dropbox-Ablage, Belegliste mit Filtern, Excel-Export',
+  ]},
+];
+const LEGAL = `
+<h4>§ 1 Urheberrecht</h4>
+<p>Die Anwendung „MietAkte“ einschließlich ihres Quellcodes, ihrer Gestaltung, Grafiken, Texte und des SYNIUM-Zeichens ist ein urheberrechtlich geschütztes Computerprogramm im Sinne der §§ 2 Abs. 1 Nr. 1, 69a UrhG. Sämtliche Rechte stehen ausschließlich dem Rechteinhaber SYNIUM – Anis El Aoud (nachfolgend „Rechteinhaber“) zu.</p>
+<h4>§ 2 Umfang des Nutzungsrechts</h4>
+<p>Der Rechteinhaber räumt dem berechtigten Nutzer ein einfaches, nicht ausschließliches, nicht übertragbares und nicht unterlizenzierbares Recht ein, die Anwendung ausschließlich persönlich und zu privaten Zwecken auf eigenen Endgeräten zu nutzen (§ 31 Abs. 1 und 2 UrhG). Eine gewerbliche Nutzung, die Nutzung für Dritte oder die Bereitstellung als Dienstleistung ist von diesem Nutzungsrecht nicht umfasst.</p>
+<h4>§ 3 Weitergabeverbot</h4>
+<p>Jede Weitergabe, Vervielfältigung, Verbreitung, öffentliche Zugänglichmachung, Vermietung, Verleihung, Bearbeitung oder sonstige Überlassung der Anwendung oder von Teilen davon an Dritte – gleich ob entgeltlich oder unentgeltlich, dauerhaft oder vorübergehend – ist untersagt (§ 69c UrhG). Die Übertragung des Nutzungsrechts oder die Einräumung von Nutzungsrechten an Dritte bedarf der vorherigen schriftlichen Zustimmung des Rechteinhabers (§§ 34 Abs. 1, 35 Abs. 1 UrhG). Ohne diese Zustimmung vorgenommene Übertragungen sind unwirksam; sie begründen keinerlei Rechte des Empfängers, und der Empfänger erwirbt keine Nutzungsbefugnis.</p>
+<h4>§ 4 Rechtsfolgen bei Zuwiderhandlung</h4>
+<p>Bei einem Verstoß gegen §§ 2 oder 3 erlischt das eingeräumte Nutzungsrecht mit sofortiger Wirkung. Der Rechteinhaber ist berechtigt, die weitere Nutzung zu untersagen und Ansprüche auf Unterlassung, Beseitigung, Auskunft und Schadensersatz geltend zu machen (§§ 97 ff. UrhG). Die Geltendmachung weitergehender gesetzlicher Ansprüche bleibt vorbehalten.</p>
+<h4>§ 5 Gewährleistung und Haftung</h4>
+<p>Die Anwendung dient der Unterstützung bei der Erfassung und Ordnung von Belegen. Sie stellt keine Steuer- oder Rechtsberatung dar. Automatisch erkannte Werte sind vom Nutzer vor der Speicherung zu prüfen; die Verantwortung für die Richtigkeit und Vollständigkeit der Angaben gegenüber Dritten, insbesondere gegenüber Finanzbehörden, liegt allein beim Nutzer. Die Anwendung wird unentgeltlich überlassen; eine Haftung des Rechteinhabers besteht – soweit gesetzlich zulässig – nur für Vorsatz und grobe Fahrlässigkeit (§§ 521, 599 BGB analog).</p>
+<h4>§ 6 Datenverarbeitung</h4>
+<p>Der Rechteinhaber erhebt, speichert oder verarbeitet keine personenbezogenen Daten des Nutzers. Belege, Belegdaten und Zugangsschlüssel werden ausschließlich auf dem Endgerät des Nutzers sowie – nach dessen Anmeldung – in dessen eigenem Dropbox-Konto gespeichert. Bei aktivierter ChatGPT-Erkennung werden Belegfotos vom Endgerät des Nutzers unmittelbar an die OpenAI-API übermittelt; hierfür gelten die Nutzungs- und Datenschutzbestimmungen von OpenAI. Für die Nutzung von Dropbox gelten die Bestimmungen von Dropbox.</p>
+<h4>§ 7 Schlussbestimmungen</h4>
+<p>Es gilt das Recht der Bundesrepublik Deutschland. Sollte eine Bestimmung dieser Hinweise unwirksam sein, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.</p>
+<div class="cp">© 2026 SYNIUM – Anis El Aoud. Alle Rechte vorbehalten. Diese Nutzungsbedingungen wurden ohne anwaltliche Prüfung erstellt und ersetzen keine Rechtsberatung.</div>`;
 // Voreingestellter Dropbox App-Key für alle Nutzer (aus der Dropbox App Console). Leer = jeder Nutzer trägt ihn selbst ein.
 const DEFAULT_DBX_APP_KEY = '';
 const KATEGORIEN = [
@@ -1095,6 +1213,13 @@ const Dropbox = {
     if (r.status === 409) return null; // nicht vorhanden
     if (!r.ok) throw new Error('Dropbox-Download: ' + await this.errorText(r));
     return r.text();
+  },
+  async downloadBlob(path){
+    const tok = await this.token();
+    const r = await fetch('https://content.dropboxapi.com/2/files/download', { method:'POST', headers:{ Authorization:'Bearer ' + tok, 'Dropbox-API-Arg': this.headerJson({ path }) } });
+    if (r.status === 409) return null;
+    if (!r.ok) throw new Error('Dropbox-Download: ' + await this.errorText(r));
+    return r.blob();
   },
   async ensureFolder(path){
     try { await this.rpc('files/create_folder_v2', { path, autorename:false }); }
@@ -1730,6 +1855,55 @@ const Picker = {
   },
 };
 
+// ---------- Vollbild-Bildbetrachter mit Zoom (Pinch, Mausrad, Tasten) und Verschieben ----------
+const Viewer = {
+  scale:1, tx:0, ty:0, min:1, ptrs:new Map(), pinch:null, nat:{ w:0, h:0 },
+  init(){
+    const st = $('vstage'), img = $('vimg');
+    $('vclose').onclick = () => $('viewer').close();
+    $('vplus').onclick = () => this.zoomAt(1.5, innerWidth / 2, innerHeight / 2);
+    $('vminus').onclick = () => this.zoomAt(1 / 1.5, innerWidth / 2, innerHeight / 2);
+    $('vfit').onclick = () => this.fit();
+    $('viewer').addEventListener('cancel', (e) => { e.preventDefault(); $('viewer').close(); });
+    st.addEventListener('wheel', (e) => { e.preventDefault(); this.zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY); }, { passive:false });
+    st.addEventListener('dblclick', (e) => { this.scale > this.min * 1.05 ? this.fit() : this.zoomAt(2.5, e.clientX, e.clientY); });
+    st.addEventListener('pointerdown', (e) => { st.setPointerCapture(e.pointerId); this.ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY }); if (this.ptrs.size === 1) st.classList.add('drag'); this.pinch = null; });
+    st.addEventListener('pointermove', (e) => {
+      if (!this.ptrs.has(e.pointerId)) return;
+      const prev = this.ptrs.get(e.pointerId); this.ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if (this.ptrs.size === 2) {
+        const [a, b] = [...this.ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        if (this.pinch) { this.zoomAt(d / this.pinch.d, mx, my); this.tx += mx - this.pinch.mx; this.ty += my - this.pinch.my; this.apply(); }
+        this.pinch = { d, mx, my };
+      } else if (this.ptrs.size === 1) { this.tx += e.clientX - prev.x; this.ty += e.clientY - prev.y; this.apply(); }
+    });
+    const up = (e) => { this.ptrs.delete(e.pointerId); if (!this.ptrs.size) st.classList.remove('drag'); this.pinch = null; };
+    st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+    window.addEventListener('resize', () => { if ($('viewer').open) this.fit(); });
+    img.onload = () => { this.nat = { w:img.naturalWidth, h:img.naturalHeight }; $('vload').style.display = 'none'; this.fit(); };
+  },
+  open(url, title, sub, link){
+    $('vtitle').innerHTML = esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '');
+    $('vlink').style.display = link ? '' : 'none'; $('vlink').onclick = () => window.open(link, '_blank', 'noopener');
+    $('vload').style.display = ''; $('vimg').src = url;
+    if (!$('viewer').open) $('viewer').showModal();
+  },
+  fit(){
+    const vw = innerWidth, vh = innerHeight; if (!this.nat.w) return;
+    this.min = Math.min(vw / this.nat.w, vh / this.nat.h, 1);           // ganz sichtbar, nie über Originalgröße vergrößert
+    this.scale = this.min; this.tx = -this.nat.w * this.scale / 2; this.ty = -this.nat.h * this.scale / 2; this.apply();
+  },
+  zoomAt(f, cx, cy){
+    const ns = Math.max(this.min, Math.min(this.scale * f, Math.max(8, this.min * 8)));
+    const k = ns / this.scale; const ox = cx - innerWidth / 2, oy = cy - innerHeight / 2;
+    this.tx = ox - (ox - this.tx) * k; this.ty = oy - (oy - this.ty) * k; this.scale = ns; this.apply();
+  },
+  apply(){
+    $('vimg').style.transform = `translate(${this.tx}px, ${this.ty}px) scale(${this.scale})`;
+    $('vpct').textContent = Math.round(this.scale * 100) + ' %';
+  },
+};
+
 // ---------- Oberfläche ----------
 const UI = {
   current:null,       // aktuell vorbereitete Datei (prepareFile)
@@ -1816,7 +1990,7 @@ const UI = {
       try { const j = JSON.parse(await f.text()); if (!Array.isArray(j.belege)) throw new Error('Keine MietAkte-Sicherung.'); DB.merge(j); DB.save(); this.renderAll(); toast('Sicherung eingespielt (zusammengeführt).', 'ok'); }
       catch(err){ toast('Wiederherstellung fehlgeschlagen: ' + err.message, 'err'); }
     };
-    Picker.init();
+    Picker.init(); Viewer.init();
     // Splash
     const splash = $('splash');
     const hide = () => splash.classList.add('hide');
@@ -1835,6 +2009,7 @@ const UI = {
     if (view === 'dashboard') this.renderDashboard();
     if (view === 'wohnungen') this.renderWohnungen();
     if (view === 'einstellungen') this.renderSettings();
+    if (view === 'info') this.renderInfo();
     if (view === 'erfassen') this.fillSelects();
   },
   renderAll(){ this.fillSelects(); this.renderBelege(); this.renderDashboard(); this.renderWohnungen(); this.renderSettings(); this.renderStatus(); },
@@ -1989,6 +2164,11 @@ const UI = {
     el.querySelectorAll('[data-xlsx]').forEach(b => b.onclick = () => Export.runYear(b.dataset.xlsx));
     Picker.syncAll();
   },
+  renderInfo(){
+    $('infoVersion').innerHTML = `Version <b>${esc(APP.version)}</b> · Stand <b>${esc(APP.build)}</b>`;
+    $('infoChangelog').innerHTML = CHANGELOG.map((r, i) => `<div class="rel${i === 0 ? ' cur' : ''}"><div class="rh"><b>Version ${esc(r.v)}</b><span>${esc(r.d)}</span>${i === 0 ? '<span class="chip ok">aktuell</span>' : ''}</div><ul>${r.p.map(x => '<li>' + esc(x) + '</li>').join('')}</ul></div>`).join('');
+    $('infoLegal').innerHTML = LEGAL;
+  },
   renderWohnungen(){
     const el = $('wohnungList');
     const ws = DB.data.wohnungen.slice().sort((a, b) => a.name.localeCompare(b.name, 'de'));
@@ -2138,6 +2318,30 @@ const UI = {
       <div class="k">Erfasst</div><div class="v">${new Date(b.erstellt).toLocaleString('de-DE')}</div>`;
     $('bRetry').style.display = b.status === 'ok' || b.status === 'laedt' ? 'none' : '';
     $('dlgBeleg').showModal();
+    this.loadBelegImage(b);
+  },
+  imgCache:new Map(),   // belegId → Objekt-URL des Bildes (aus lokalem Zwischenspeicher oder Dropbox)
+  async belegImageUrl(b){
+    if (this.imgCache.has(b.id)) return this.imgCache.get(b.id);
+    let blob = null;
+    const p = await Pending.get(b.id).catch(() => null);
+    if (p && p.blob) blob = p.blob;
+    else if (b.dropboxPath && Dropbox.connected) blob = await Dropbox.downloadBlob(b.dropboxPath);
+    if (!blob) return null;
+    const url = URL.createObjectURL(blob); this.imgCache.set(b.id, url); return url;
+  },
+  async loadBelegImage(b){
+    const wrap = $('bImgWrap');
+    const zoom = '<span class="zoomhint"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>Tippen zum Zoomen</span>';
+    if (b.mime === 'application/pdf' || b.ext === 'pdf') { wrap.innerHTML = `<div class="st">📄 PDF-Beleg${b.dropboxLink ? ' – <a href="' + esc(b.dropboxLink) + '" target="_blank" rel="noopener" style="color:var(--accent2)">in Dropbox öffnen ↗</a>' : ''}</div>`; return; }
+    wrap.innerHTML = '<div class="st"><span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>Bild wird geladen …</div>';
+    try {
+      const url = await this.belegImageUrl(b);
+      if (this.editId !== b.id) return;
+      if (!url) { wrap.innerHTML = `<div class="st">${b.dropboxPath ? (Dropbox.connected ? 'Bild in Dropbox nicht gefunden.' : 'Bild liegt in Dropbox – zum Anzeigen bitte Dropbox verbinden.') : 'Kein Bild vorhanden.'}${b.dropboxLink ? '<br><a href="' + esc(b.dropboxLink) + '" target="_blank" rel="noopener" style="color:var(--accent2)">In Dropbox öffnen ↗</a>' : ''}</div>`; return; }
+      wrap.innerHTML = `<img src="${url}" alt="Beleg">${zoom}`;
+      wrap.querySelector('img').onclick = () => Viewer.open(url, `${b.haendler || 'Beleg'} · ${fmtDatum(b.datum)} · ${euro(b.brutto)}`, b.dateiName || '', b.dropboxLink || '');
+    } catch(e){ wrap.innerHTML = `<div class="st">Bild konnte nicht geladen werden: ${esc(e.message)}</div>`; }
   },
   saveEdit(){
     const b = DB.beleg(this.editId); if (!b) return;

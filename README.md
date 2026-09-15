@@ -98,6 +98,13 @@ bis zu 2100 px Inhaltsbreite.
   `<Basisordner>/Steuer/Steuer_JJJJ.xlsx` abgelegt – beim erneuten Erstellen wird die Datei des
   Jahres überschrieben. Aufruf über „Excel JJJJ" in der Übersicht oder „Excel Steuerjahr" in der
   Belegliste (Jahr aus dem Jahresfilter, sonst das jüngste Jahr mit Belegen).
+- **Beleg öffnen**: Tipp auf einen Beleg zeigt alle Daten samt Belegbild (aus dem lokalen
+  Zwischenspeicher oder aus Dropbox). Tipp auf das Bild öffnet den Vollbild-Betrachter mit Zoom
+  (Finger, Mausrad, +/−, Doppeltipp) in der gespeicherten Auflösung (bis 1800 px Kantenlänge).
+- **Info**: Version mit Stand (Datum/Uhrzeit), Änderungsverlauf je Version und die rechtlichen
+  Hinweise / Nutzungsbedingungen (§§ 1–7: Urheberrecht, Nutzungsrecht, Weitergabeverbot,
+  Rechtsfolgen, Haftung, Datenverarbeitung, Schlussbestimmungen). Bei jeder Änderung der App
+  werden `APP.version`, `APP.build` und `CHANGELOG` in `index.html` fortgeschrieben.
 - Schlägt ein Upload fehl (offline, Dropbox getrennt), bleibt der Beleg mit dem Bild lokal
   gespeichert (IndexedDB) und kann über **Ausstehende hochladen** nachgeholt werden.
 
