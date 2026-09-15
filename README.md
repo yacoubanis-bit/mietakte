@@ -116,6 +116,13 @@ bis zu 2100 px Inhaltsbreite.
 - Schlägt ein Upload fehl (offline, Dropbox getrennt), bleibt der Beleg mit dem Bild lokal
   gespeichert (IndexedDB) und kann über **Ausstehende hochladen** nachgeholt werden.
 
+## Anleitungen (PDF)
+Im Ordner `MietAkte/` liegen vier Anleitungen im SYNIUM-Design (A4, weißes Blatt):
+`MietAkte_Bedienungsanleitung.pdf` (A–Z mit Bildschirmfotos und Musterdaten),
+`MietAkte_Anleitung_Installation.pdf` (Android/iPhone), `MietAkte_Anleitung_Dropbox.pdf`,
+`MietAkte_Anleitung_ChatGPT.pdf`. Die Bildschirmfotos entstehen automatisiert über einen Demo-Modus
+(Musterdaten, Chrome-DevTools); die Generatoren liegen nicht im Repo.
+
 ## Datenhaltung
 - Belegtabelle und Wohnungen liegen im localStorage des Browsers und werden bei verbundener
   Dropbox zusätzlich als `mietakte-daten.json` im Basisordner gespiegelt (Abgleich beim Start,
