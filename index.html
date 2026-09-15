@@ -360,6 +360,94 @@
   @keyframes swBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
   @media (prefers-reduced-motion:reduce){ #switchNote *{animation-duration:.01ms !important; animation-iteration-count:1 !important} }
 
+  /* ===== Auswahlfelder mit eigenem Fenster (Wohnung, Kategorie, Datum) ===== */
+  .pickwrap{position:relative}
+  @media (max-width:480px){ .row.stack{flex-direction:column; align-items:stretch} .row.stack>*{width:100%} }
+  .pickwrap select,.pickwrap input[type=date]{display:none !important}
+  .pickbtn{
+    width:100%; display:flex; align-items:center; justify-content:flex-start; gap:9px; text-align:left;
+    background:var(--field); border:1px solid var(--border); border-radius:9px; padding:5px 9px 5px 6px; min-height:38px;
+    color:var(--fg); font-size:13.5px; font-weight:500; letter-spacing:0; transition:.15s;
+  }
+  .pickbtn:hover{border-color:var(--border2); background:var(--field)}
+  .pickbtn:active{transform:scale(.99)}
+  .pickbtn .pi{width:27px; height:27px; border-radius:8px; background:rgba(99,102,241,.2); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:inset 0 0 0 1px rgba(99,102,241,.25)}
+  .pickbtn .pi svg{width:16px; height:16px; stroke:var(--accent2); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  .pickbtn .pl{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pickbtn.empty .pl{color:var(--faint)}
+  .pickbtn .pc{width:14px; height:14px; stroke:var(--muted); fill:none; stroke-width:2.5; stroke-linecap:round; flex:none}
+  .pickbtn.erkannt{border-color:rgba(34,211,238,.45); box-shadow:inset 0 0 0 1px rgba(34,211,238,.18)}
+  .pickbtn.erkannt .pi{background:rgba(34,211,238,.18); box-shadow:0 0 12px rgba(34,211,238,.35)}
+
+  dialog#sheet{border:none; background:transparent; padding:0; margin:0; max-width:none; width:100vw; height:100dvh; max-height:none; inset:0; overflow:visible}
+  dialog#sheet::backdrop{background:rgba(3,5,12,.62); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px)}
+  #sheet .sc{
+    position:absolute; left:0; right:0; bottom:0; max-height:84dvh; display:flex; flex-direction:column;
+    background:#0d1222; border:1px solid var(--border2); border-bottom:none; border-radius:22px 22px 0 0;
+    padding:10px 14px calc(14px + var(--sab)); box-shadow:0 -20px 60px rgba(0,0,0,.65);
+    animation:sheetUp .34s cubic-bezier(.2,.75,.2,1);
+  }
+  #sheet .sc::before{content:''; width:40px; height:4px; border-radius:2px; background:rgba(255,255,255,.18); margin:0 auto 10px}
+  #sheet.closing .sc{animation:sheetDown .22s ease forwards}
+  @keyframes sheetUp{from{transform:translateY(40px); opacity:0}to{transform:none; opacity:1}}
+  @keyframes sheetDown{to{transform:translateY(40px); opacity:0}}
+  @media (min-width:760px){
+    #sheet .sc{left:50%; right:auto; bottom:auto; top:50%; translate:-50% -50%; width:min(92vw,460px); max-height:80vh; border-radius:20px; border-bottom:1px solid var(--border2); padding:14px 16px 16px; animation:swIn .35s cubic-bezier(.2,.75,.2,1)}
+    #sheet .sc::before{display:none}
+    #sheet.closing .sc{animation:swFadeOut .2s ease forwards}
+  }
+  #sheet .sh{display:flex; align-items:center; gap:10px; padding:2px 2px 10px; border-bottom:1px solid var(--border); margin-bottom:8px}
+  #sheet .sh .ic{width:38px; height:38px; border-radius:12px; background:var(--accent-grad); display:flex; align-items:center; justify-content:center; flex:none; animation:icGlow 2.4s ease-in-out infinite}
+  #sheet .sh .ic svg{width:20px; height:20px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  #sheet .sh h3{margin:0; font-size:15px; font-weight:750; flex:1}
+  #sheet .sh h3 small{display:block; font-size:11px; color:var(--muted); font-weight:500; margin-top:2px}
+  @keyframes icGlow{0%,100%{box-shadow:0 0 10px rgba(34,211,238,.35)} 50%{box-shadow:0 0 24px rgba(34,211,238,.75), 0 0 40px rgba(99,102,241,.35)}}
+  #sheet .opts{overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding:2px 1px; -webkit-overflow-scrolling:touch}
+  #sheet .opt{
+    display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; text-align:left; justify-content:flex-start;
+    border:1px solid var(--border); background:var(--surface2); color:var(--fg); min-height:52px; animation:optIn .32s ease both;
+  }
+  #sheet .opt:hover{border-color:var(--border2)}
+  #sheet .opt .oi{width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex:none; background:rgba(255,255,255,.06); transition:.2s}
+  #sheet .opt .oi svg{width:20px; height:20px; stroke:var(--accent2); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  #sheet .opt .oi.k-erhaltung svg{stroke:#67e8f9} #sheet .opt .oi.k-herstellung svg{stroke:#c4b5fd} #sheet .opt .oi.k-klein svg{stroke:#fcd34d} #sheet .opt .oi.k-sonst svg{stroke:#a5b4c8}
+  #sheet .opt .ot{flex:1; min-width:0}
+  #sheet .opt .ot b{display:block; font-size:14px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  #sheet .opt .ot small{display:block; color:var(--muted); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px}
+  #sheet .opt .chk{width:22px; height:22px; border-radius:50%; border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; flex:none}
+  #sheet .opt .chk svg{width:13px; height:13px; stroke:#fff; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; opacity:0; transform:scale(.5); transition:.2s}
+  #sheet .opt.sel{border-color:rgba(34,211,238,.6); background:rgba(34,211,238,.1); animation:optIn .32s ease both, selPulse 2.2s ease-in-out .3s infinite}
+  #sheet .opt.sel .oi{background:var(--accent-grad); box-shadow:0 0 16px rgba(34,211,238,.5)}
+  #sheet .opt.sel .oi svg{stroke:#fff}
+  #sheet .opt.sel .chk{background:var(--accent-grad); border-color:transparent}
+  #sheet .opt.sel .chk svg{opacity:1; transform:none}
+  @keyframes optIn{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+  @keyframes selPulse{0%,100%{box-shadow:0 0 0 1px rgba(34,211,238,.3), 0 0 14px rgba(34,211,238,.2)} 50%{box-shadow:0 0 0 1px rgba(34,211,238,.55), 0 0 26px rgba(34,211,238,.4)}}
+  #sheet .empty-opt{padding:16px; text-align:center; color:var(--muted); font-size:13px}
+
+  /* Kalender */
+  #sheet .cal .ch{display:flex; align-items:center; gap:6px; margin-bottom:6px}
+  #sheet .cal .ch .my{flex:1; text-align:center; font-weight:800; font-size:15px; letter-spacing:.3px}
+  #sheet .cal .ch .my small{display:block; font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.8px}
+  #sheet .cal .ch button{min-height:36px; width:38px; padding:0; border-radius:10px}
+  #sheet .cal .ch button svg{width:16px; height:16px}
+  #sheet .cal .wd{display:grid; grid-template-columns:repeat(7,1fr); font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.6px; text-align:center; margin:8px 0 4px; font-weight:700}
+  #sheet .cal .days{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+  #sheet .cal .day{
+    aspect-ratio:1; min-height:0; padding:0; border-radius:12px; border:1px solid transparent; background:transparent;
+    color:var(--fg); font-family:var(--mono); font-size:13.5px; font-weight:600; display:flex; align-items:center; justify-content:center;
+    animation:optIn .25s ease both;
+  }
+  #sheet .cal .day:hover{background:rgba(255,255,255,.07); border-color:transparent}
+  #sheet .cal .day.out{color:var(--faint); opacity:.45}
+  #sheet .cal .day.today{border-color:rgba(99,102,241,.7); color:#c7d2fe}
+  #sheet .cal .day.sel{background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 0 18px rgba(34,211,238,.55); animation:optIn .25s ease both, selPulse 2.2s ease-in-out .3s infinite}
+  #sheet .cal .day.we{color:#93c5fd}
+  #sheet .cal .day.we.out{color:var(--faint)}
+  #sheet .cal .cf{display:flex; gap:8px; margin-top:10px}
+  #sheet .cal .cf button{flex:1}
+  @media (prefers-reduced-motion:reduce){ #sheet *{animation:none !important} }
+
   /* ===== Toast ===== */
   #toasts{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + var(--sab)); z-index:200; display:flex; flex-direction:column; gap:8px; width:min(92vw,440px); pointer-events:none}
   .toast{
@@ -536,12 +624,12 @@
 
     <div class="card">
       <h2>Belegdaten prüfen</h2>
-      <div class="row">
-        <label class="f"><span class="lab">Wohnung *</span><select id="eWohnung"></select></label>
-        <label class="f"><span class="lab">Kategorie *</span><select id="eKategorie"></select></label>
+      <div class="row stack">
+        <label class="f"><span class="lab">Wohnung *</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="eWohnung" data-kind="wohnung" data-title="Wohnung wählen"></button><select id="eWohnung"></select></div></label>
+        <label class="f"><span class="lab">Kategorie *</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="eKategorie" data-kind="kategorie" data-title="Kategorie wählen"></button><select id="eKategorie"></select></div></label>
       </div>
       <div class="row">
-        <label class="f"><span class="lab">Datum *</span><input type="date" id="eDatum"></label>
+        <label class="f"><span class="lab">Datum *</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="eDatum" data-kind="datum" data-title="Belegdatum"></button><input type="date" id="eDatum"></div></label>
         <label class="f"><span class="lab">Händler / Lieferant *</span><input type="text" id="eHaendler" placeholder="z. B. Bauhaus" autocomplete="off"></label>
       </div>
       <div class="row">
@@ -655,8 +743,8 @@
 
 <nav class="tabbar">
   <button data-view="dashboard"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Übersicht</button>
-  <button data-view="belege" class="active"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Belege</button>
-  <button data-view="erfassen" class="cta"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Erfassen</button>
+  <button data-view="belege"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Belege</button>
+  <button data-view="erfassen" class="cta active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Erfassen</button>
   <button data-view="wohnungen"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Wohnungen</button>
   <button data-view="einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Einstellungen</button>
 </nav>
@@ -680,12 +768,12 @@
   <form method="dialog">
     <div class="dlg-h"><h3>Beleg bearbeiten</h3><button type="button" class="icon ghost" data-close>✕</button></div>
     <div class="dlg-b">
-      <div class="row">
-        <label class="f"><span class="lab">Wohnung</span><select id="bWohnung"></select></label>
-        <label class="f"><span class="lab">Kategorie</span><select id="bKategorie"></select></label>
+      <div class="row stack">
+        <label class="f"><span class="lab">Wohnung</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="bWohnung" data-kind="wohnung" data-title="Wohnung wählen"></button><select id="bWohnung"></select></div></label>
+        <label class="f"><span class="lab">Kategorie</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="bKategorie" data-kind="kategorie" data-title="Kategorie wählen"></button><select id="bKategorie"></select></div></label>
       </div>
       <div class="row">
-        <label class="f"><span class="lab">Datum</span><input type="date" id="bDatum"></label>
+        <label class="f"><span class="lab">Datum</span><div class="pickwrap"><button type="button" class="pickbtn" data-pick="bDatum" data-kind="datum" data-title="Belegdatum"></button><input type="date" id="bDatum"></div></label>
         <label class="f"><span class="lab">Händler</span><input type="text" id="bHaendler"></label>
       </div>
       <div class="row">
@@ -717,6 +805,9 @@
     <div class="dlg-f"><button type="button" class="ghost" data-close>Abbrechen</button><button type="submit" class="primary" id="dbxCodeOk">Verbinden</button></div>
   </form>
 </dialog>
+
+<!-- ===== Auswahlfenster (Wohnung / Kategorie / Kalender) ===== -->
+<dialog id="sheet"><div class="sc" id="sheetCard"></div></dialog>
 
 <!-- ===== Dialog: Bestätigung ===== -->
 <dialog id="dlgConfirm">
@@ -1515,6 +1606,117 @@ const Export = {
   },
 };
 
+// ---------- Auswahlfenster: ersetzt native Select-/Datumsfelder durch eigene, animierte Fenster ----------
+const ICONS = {
+  home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  tag:'<svg viewBox="0 0 24 24"><path d="M20 13l-7 7-10-10V4h6z"/><circle cx="8" cy="8" r="1.5"/></svg>',
+  erhaltung:'<svg viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 0 0 5 5L9 21l-3-3L16.5 7.5a4 4 0 0 0-2-2z"/><path d="M14.5 5.5l4 4"/></svg>',
+  herstellung:'<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6M10 11h4"/></svg>',
+  klein:'<svg viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>',
+  sonstiges:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+  chev:'<svg class="pc" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>',
+  left:'<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
+  right:'<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  dleft:'<svg viewBox="0 0 24 24"><path d="M18 6l-6 6 6 6M11 6l-6 6 6 6"/></svg>',
+  dright:'<svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg>',
+};
+const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const Picker = {
+  current:null, cal:{ y:0, m:0 },
+  init(){
+    document.querySelectorAll('.pickbtn').forEach(b => b.onclick = (e) => { e.preventDefault(); this.open(b.dataset.pick); });
+    $('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) this.close(); });   // Tipp auf den Hintergrund
+    $('sheet').addEventListener('cancel', (e) => { e.preventDefault(); this.close(); });
+    this.syncAll();
+  },
+  iconFor(kind, el){
+    if (kind === 'wohnung') return ICONS.home;
+    if (kind === 'datum') return ICONS.cal;
+    const k = el && el.value ? kat(el.value).id : ''; return ICONS[k] || ICONS.tag;
+  },
+  label(el){
+    if (el.type === 'date') return el.value ? fmtDatum(el.value) : 'Datum wählen';
+    const o = el.options[el.selectedIndex];
+    if (o && o.value) return o.textContent;
+    return el.options.length && !el.options[0].value ? el.options[0].textContent : 'Bitte wählen';
+  },
+  sync(id){
+    const el = $(id), b = document.querySelector(`.pickbtn[data-pick="${id}"]`); if (!el || !b) return;
+    b.innerHTML = `<span class="pi">${this.iconFor(b.dataset.kind, el)}</span><span class="pl">${esc(this.label(el))}</span>${ICONS.chev}`;
+    b.classList.toggle('empty', !el.value);
+    b.classList.toggle('erkannt', el.classList.contains('erkannt'));
+  },
+  syncAll(){ document.querySelectorAll('.pickbtn').forEach(b => this.sync(b.dataset.pick)); },
+  open(id){
+    const el = $(id), b = document.querySelector(`.pickbtn[data-pick="${id}"]`);
+    this.current = id;
+    const kind = b.dataset.kind, title = b.dataset.title || '';
+    const card = $('sheetCard');
+    const head = (sub) => `<div class="sh"><div class="ic">${this.iconFor(kind, kind === 'kategorie' ? null : el)}</div><h3>${esc(title)}${sub ? '<small>' + esc(sub) + '</small>' : ''}</h3><button type="button" class="icon ghost" id="sheetX">✕</button></div>`;
+    if (kind === 'datum') { card.innerHTML = head('Tag antippen'); this.renderCal(el); }
+    else {
+      const opts = [...el.options].filter(o => o.value);
+      let html = head(kind === 'wohnung' ? 'Mietobjekt für diesen Beleg' : 'Steuerliche Zuordnung');
+      html += '<div class="opts">';
+      if (!opts.length) html += `<div class="empty-opt">Noch keine Wohnung angelegt – bitte zuerst unter „Wohnungen“ anlegen.</div>`;
+      opts.forEach((o, i) => {
+        let icon = ICONS.home, cls = '', sub = '';
+        if (kind === 'wohnung') { const w = DB.wohnung(o.value); sub = w && w.adresse ? w.adresse : ''; }
+        else { const k = kat(o.value); icon = ICONS[k.id] || ICONS.tag; cls = k.cls; sub = { erhaltung:'Reparatur, Renovierung, Instandhaltung', herstellung:'Neuanschaffung, Erweiterung, wesentliche Verbesserung', klein:'Geringwertige Materialien und Kleinteile', sonstiges:'Alles andere' }[k.id] || ''; }
+        html += `<button type="button" class="opt${o.value === el.value ? ' sel' : ''}" data-v="${esc(o.value)}" style="animation-delay:${Math.min(i, 8) * 40}ms"><span class="oi ${cls}">${icon}</span><span class="ot"><b>${esc(o.textContent)}</b>${sub ? '<small>' + esc(sub) + '</small>' : ''}</span><span class="chk">${ICONS.check}</span></button>`;
+      });
+      html += '</div>';
+      card.innerHTML = html;
+      card.querySelectorAll('.opt').forEach(x => x.onclick = () => this.choose(el, x.dataset.v));
+    }
+    $('sheetX').onclick = () => this.close();
+    $('sheet').classList.remove('closing');
+    if (!$('sheet').open) $('sheet').showModal();
+  },
+  choose(el, v){
+    el.value = v; el.classList.remove('erkannt');
+    el.dispatchEvent(new Event('change', { bubbles:true })); el.dispatchEvent(new Event('input', { bubbles:true }));
+    this.sync(el.id); this.close();
+  },
+  close(){
+    const d = $('sheet'); if (!d.open) return;
+    d.classList.add('closing');
+    setTimeout(() => { d.classList.remove('closing'); if (d.open) d.close(); }, 230);
+  },
+  // ----- Kalender -----
+  renderCal(el){
+    const card = $('sheetCard');
+    const today = new Date(); const tIso = today.toISOString().slice(0, 10);
+    if (!this.cal.init) { const src = el.value || tIso; this.cal = { init:true, y:+src.slice(0, 4), m:+src.slice(5, 7) - 1 }; }
+    const { y, m } = this.cal;
+    const first = new Date(y, m, 1); const startDow = (first.getDay() + 6) % 7;   // Montag = 0
+    const dim = new Date(y, m + 1, 0).getDate(); const dimPrev = new Date(y, m, 0).getDate();
+    let html = `<div class="cal">
+      <div class="ch"><button type="button" data-nav="-12" title="Vorjahr">${ICONS.dleft}</button><button type="button" data-nav="-1" title="Vormonat">${ICONS.left}</button>
+        <div class="my">${MONATE[m]}<small>${y}</small></div>
+        <button type="button" data-nav="1" title="Folgemonat">${ICONS.right}</button><button type="button" data-nav="12" title="Folgejahr">${ICONS.dright}</button></div>
+      <div class="wd"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="days">`;
+    const cells = [];
+    for (let i = startDow - 1; i >= 0; i--) cells.push({ d:dimPrev - i, m:m - 1, out:true });
+    for (let d = 1; d <= dim; d++) cells.push({ d, m, out:false });
+    while (cells.length % 7) cells.push({ d:cells.length - startDow - dim + 1, m:m + 1, out:true });
+    cells.forEach((c, i) => {
+      const dt = new Date(y, c.m, c.d); const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      const dow = (dt.getDay() + 6) % 7;
+      html += `<button type="button" class="day${c.out ? ' out' : ''}${iso === tIso ? ' today' : ''}${iso === el.value ? ' sel' : ''}${dow >= 5 ? ' we' : ''}" data-iso="${iso}" style="animation-delay:${Math.min(i, 41) * 8}ms">${c.d}</button>`;
+    });
+    html += `</div><div class="cf"><button type="button" data-today="1">Heute</button><button type="button" class="ghost" data-clear="1">Leeren</button></div></div>`;
+    const old = card.querySelector('.cal'); if (old) old.remove();
+    card.insertAdjacentHTML('beforeend', html);
+    card.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { const n = +b.dataset.nav; const d = new Date(this.cal.y, this.cal.m + n, 1); this.cal.y = d.getFullYear(); this.cal.m = d.getMonth(); this.renderCal(el); });
+    card.querySelectorAll('.day').forEach(b => b.onclick = () => { this.cal.init = false; this.choose(el, b.dataset.iso); });
+    card.querySelector('[data-today]').onclick = () => { this.cal.init = false; this.choose(el, tIso); };
+    card.querySelector('[data-clear]').onclick = () => { this.cal.init = false; this.choose(el, ''); };
+  },
+};
+
 // ---------- Oberfläche ----------
 const UI = {
   current:null,       // aktuell vorbereitete Datei (prepareFile)
@@ -1601,6 +1803,7 @@ const UI = {
       try { const j = JSON.parse(await f.text()); if (!Array.isArray(j.belege)) throw new Error('Keine MietAkte-Sicherung.'); DB.merge(j); DB.save(); this.renderAll(); toast('Sicherung eingespielt (zusammengeführt).', 'ok'); }
       catch(err){ toast('Wiederherstellung fehlgeschlagen: ' + err.message, 'err'); }
     };
+    Picker.init();
     // Splash
     const splash = $('splash');
     const hide = () => splash.classList.add('hide');
@@ -1683,6 +1886,7 @@ const UI = {
     const years = [...new Set(DB.data.belege.map(b => (b.datum || '').slice(0, 4)).filter(Boolean))].sort().reverse();
     keep('fJahr', '<option value="">–</option>' + years.map(y => `<option>${y}</option>`).join(''));
     if (!$('eWohnung').value && ws.length === 1) $('eWohnung').value = ws[0].id;
+    Picker.syncAll();
   },
   filtered(){
     const wf = $('fWohnung').value, kf = $('fKategorie').value, von = $('fVon').value, bis = $('fBis').value, q = $('fSuche').value.trim().toLowerCase();
@@ -1857,6 +2061,7 @@ const UI = {
       set('eBrutto', r.brutto != null ? num2(r.brutto) : '');
       set('eMwst', r.mwst != null ? num2(r.mwst) : '');
       if (r.belegnummer && !$('eBemerkung').value) $('eBemerkung').value = 'Beleg-Nr. ' + r.belegnummer;
+      Picker.syncAll();
       if (r.engine === 'lokal') { $('ocrText').textContent = (r.text || '').trim() || '(kein Text erkannt)'; $('ocrDetails').style.display = ''; }
       else $('ocrDetails').style.display = 'none';
       const parts = [];
@@ -1878,6 +2083,7 @@ const UI = {
     for (const id of ['eDatum', 'eHaendler', 'eBrutto', 'eMwst', 'eBemerkung']) { $(id).value = ''; $(id).classList.remove('erkannt'); }
     $('eKategorie').value = 'erhaltung'; $('eKategorie').classList.remove('erkannt'); delete $('eKategorie').dataset.touched;
     if (keepWohnung) $('eWohnung').value = w;
+    Picker.syncAll();
     this.clearFile();
   },
   async saveBeleg(){
@@ -1908,6 +2114,7 @@ const UI = {
     this.editId = id; this.fillSelects();
     $('bWohnung').value = b.wohnungId; $('bKategorie').value = b.kategorie; $('bDatum').value = b.datum || ''; $('bHaendler').value = b.haendler || '';
     $('bBrutto').value = num2(b.brutto); $('bMwst').value = num2(b.mwst); $('bBemerkung').value = b.bemerkung || '';
+    Picker.syncAll();
     const st = b.status === 'ok' ? '<span class="chip ok">☁ In Dropbox</span>' : b.status === 'laedt' ? '<span class="chip warn">lädt …</span>' : `<span class="chip ${b.status === 'fehler' ? 'err' : 'warn'}">${b.status === 'fehler' ? '⚠ Upload fehlgeschlagen' : '⏳ Upload ausstehend'}</span>`;
     $('bInfo').innerHTML = `<div class="k">Status</div><div class="v">${st}${b.fehler ? '<div style="color:var(--red);font-size:12px;margin-top:4px">' + esc(b.fehler) + '</div>' : ''}</div>
       ${b.dropboxPath ? `<div class="k">Datei</div><div class="v">${esc(b.dropboxPath)}</div>` : ''}
@@ -1969,7 +2176,7 @@ const UI = {
   DB.load(); Dropbox.load();
   UI.init();
   UI.renderAll();
-  UI.show('belege');
+  UI.show('erfassen');
   $('eKategorie').addEventListener('change', () => { $('eKategorie').dataset.touched = '1'; });
   if (await Dropbox.handleRedirect()) { UI.renderSettings(); UI.show('einstellungen'); }
   if (Dropbox.connected) {
