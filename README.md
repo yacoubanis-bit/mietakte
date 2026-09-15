@@ -75,6 +75,9 @@ bis zu 2100 px Inhaltsbreite.
   automatisch ein Unterordner `Steuer JJJJ` (Jahr aus dem Belegdatum), z. B.
   `/MietAkte/Wohnung_Hauptstrasse_12/Steuer 2025/2025-03-04_Bauhaus_43,89EUR.jpg`.
   Die Excel-Jahresaufstellungen liegen davon getrennt unter `/MietAkte/Steuer/`.
+- Die App startet direkt im Bereich **Erfassen**. Wohnung, Kategorie und Datum werden über eigene
+  Auswahlfenster gewählt (Symbole, Leuchtanimation, eigener Kalender mit Monats-/Jahreswechsel und
+  „Heute"), nicht über die Systemdialoge von Android/iOS.
 - **Erfassen**: Foto aufnehmen oder Datei (JPG/PNG/PDF) wählen → Beleg wird über ChatGPT bzw.
   lokal ausgewertet, die Werte werden blau markiert → prüfen/korrigieren → Wohnung und
   Kategorie wählen → **Speichern & hochladen**. Der Hinweis unter dem Foto nennt, welche
