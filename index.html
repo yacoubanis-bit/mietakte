@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#070a12">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MietAkte">
@@ -47,7 +47,7 @@
   header{
     display:flex; align-items:center; gap:14px;
     padding:calc(8px + var(--sat)) 14px 8px; flex:none;
-    background:rgba(11,16,32,.55); backdrop-filter:blur(14px) saturate(140%);
+    background:#000; backdrop-filter:blur(14px) saturate(140%);
     -webkit-backdrop-filter:blur(14px) saturate(140%);
     border-bottom:1px solid var(--border); z-index:5;
   }
@@ -974,9 +974,12 @@
    ===================================================================== */
 
 // ---------- Konstanten ----------
-const APP = { name:'MietAkte', version:'1.5.0', build:'15.09.2026 05:20', dbFile:'mietakte-daten.json' };
+const APP = { name:'MietAkte', version:'1.5.1', build:'30.09.2026 18:55', dbFile:'mietakte-daten.json' };
 // Versionshistorie (neueste zuerst) – wird auf der Info-Seite angezeigt
 const CHANGELOG = [
+  { v:'1.5.1', d:'30.09.2026 18:55', p:[
+    'Kopfzeile oben jetzt immer tiefschwarz (#000) wie der Hintergrund des SYNIUM-Logos, nicht mehr halbtransparent; Statusleiste (theme-color, Manifest) ebenfalls schwarz – einheitlich für alle SYNIUM-Apps',
+  ]},
   { v:'1.5.0', d:'15.09.2026 05:20', p:[
     'Übertragungsfenster mit Animation, wenn ein Beleg an ChatGPT gesendet wird; kurzes Häkchen bei Erfolg',
     'ChatGPT-Verbrauch: Kosten je Anfrage aus Tokens und Modellpreis in Euro, Summen gesamt und je Monat, Anzeige unter dem Foto und in den Einstellungen',
